@@ -1,11 +1,32 @@
-HELP.md
-.gradle
-build/
-!gradle/wrapper/gradle-wrapper.jar
-!**/src/main/**/build/
-!**/src/test/**/build/
+# ──────────────
+# 🔧 공통 무시 항목
+# ──────────────
+.DS_Store
+*.log
+*.class
+*.jar
+*.war
 
-### STS ###
+# IDE 설정
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+
+# Build outputs
+out/
+bin/
+
+# ──────────────
+# 🧱 백엔드(Spring Boot + Gradle)
+# ──────────────
+.gradle/
+build/
+!/backend/gradle/wrapper/gradle-wrapper.jar
+/backend/target/
+
+# STS (Spring Tool Suite)
 .apt_generated
 .classpath
 .factorypath
@@ -13,25 +34,21 @@ build/
 .settings
 .springBeans
 .sts4-cache
-bin/
-!**/src/main/**/bin/
-!**/src/test/**/bin/
 
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
-out/
-!**/src/main/**/out/
-!**/src/test/**/out/
+# ──────────────
+# 🌐 프론트엔드 (Vite / React)
+# ──────────────
+/frontend/node_modules/
+/frontend/dist/
+/frontend/.env
+/frontend/.env.local
+/frontend/.eslintcache
 
-### NetBeans ###
+# ──────────────
+# NetBeans (optional)
+# ──────────────
 /nbproject/private/
 /nbbuild/
 /dist/
 /nbdist/
 /.nb-gradle/
-
-### VS Code ###
-.vscode/
