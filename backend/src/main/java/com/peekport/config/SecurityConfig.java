@@ -13,6 +13,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -22,10 +23,12 @@ import java.io.IOException;
 public class SecurityConfig {
 
     private final JwtUtil jwtUtil;
+    private final CorsConfigurationSource corsConfigurationSource;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
+                .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
@@ -36,7 +39,7 @@ public class SecurityConfig {
                 .build();
     }
 
-    // JWT 필터 정의
+    // 필터 클래스
     static class JwtFilter extends OncePerRequestFilter {
 
         private final JwtUtil jwtUtil;
@@ -51,14 +54,20 @@ public class SecurityConfig {
                                         FilterChain filterChain)
                 throws ServletException, IOException {
 
+            String path = request.getRequestURI();
+
+            // 회원가입, 로그인은 토큰 검사 건너뜀
+            if (path.startsWith("/api/auth")) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
             String authHeader = request.getHeader("Authorization");
 
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
                 String token = authHeader.substring(7);
                 try {
                     String email = jwtUtil.validateTokenAndGetEmail(token);
-
-                    // 인증된 사용자로 등록 (우리는 간단히 이메일만 넣음)
                     UsernamePasswordAuthenticationToken auth =
                             new UsernamePasswordAuthenticationToken(email, null, null);
                     SecurityContextHolder.getContext().setAuthentication(auth);

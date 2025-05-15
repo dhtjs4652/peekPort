@@ -1,5 +1,6 @@
 package com.peekport.controller.user;
 
+import com.peekport.dto.SignupRequest;
 import com.peekport.model.User;
 import com.peekport.service.UserService;
 import com.peekport.config.JwtUtil;
@@ -14,14 +15,16 @@ public class AuthController {
     private final JwtUtil jwtUtil;
     private final UserService userService;
 
-    @PostMapping("/register")
-    public String register(
-            @RequestParam String name,
-            @RequestParam String email,
-            @RequestParam String password) {
-        User user = userService.register(name, email, password);
+    @PostMapping("/signup")
+    public String register(@RequestBody SignupRequest request) {
+        User user = userService.register(
+                request.getName(),
+                request.getEmail(),
+                request.getPassword()
+        );
         return "회원가입 성공: " + user.getEmail();
     }
+
 
     @PostMapping("/login")
     public String login(@RequestParam String email,
