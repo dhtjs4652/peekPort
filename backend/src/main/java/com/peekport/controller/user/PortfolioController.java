@@ -10,6 +10,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/portfolios")
 @RequiredArgsConstructor
@@ -29,6 +31,17 @@ public class PortfolioController {
 
         // 서비스로 위임
         GoalAccountResponse response = portfolioService.createPortfolio(request, user);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping
+    public ResponseEntity<List<GoalAccountResponse>> getPortfolios(
+            @AuthenticationPrincipal String email
+    ) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        List<GoalAccountResponse> response = portfolioService.getPortfoliosByUser(user);
         return ResponseEntity.ok(response);
     }
 }

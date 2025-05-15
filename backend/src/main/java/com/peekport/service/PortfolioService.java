@@ -45,5 +45,18 @@ public class PortfolioService {
                 saved.getTargetAmount()
         );
     }
+
+    public List<GoalAccountResponse> getPortfoliosByUser(User user) {
+        List<GoalAccount> list = goalAccountRepository.findByUser(user);
+        return list.stream()
+                .map(p -> new GoalAccountResponse(
+                        p.getId(),
+                        p.getTitle(),
+                        p.getTotalAmount(),
+                        p.getTargetAmount()
+                ))
+                .toList();
+    }
+
     // 추후: 포트폴리오 등록, 수정, 삭제 메서드 추가 예정
 }
