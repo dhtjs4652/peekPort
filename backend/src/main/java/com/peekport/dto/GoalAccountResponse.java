@@ -9,7 +9,7 @@ import lombok.Setter;
 @AllArgsConstructor
 public class GoalAccountResponse {
     private Long id;
-    private String title;
+    private String name;
     private Long totalAmount;
     private Long targetAmount;
 }

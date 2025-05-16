@@ -32,7 +32,7 @@ public class PortfolioService {
     public GoalAccountResponse createPortfolio(GoalAccountRequest request, User user) {
         GoalAccount portfolio = new GoalAccount();
         portfolio.setUser(user);
-        portfolio.setTitle(request.getTitle());
+        portfolio.setName(request.getName());
         portfolio.setTotalAmount(request.getTotalAmount());
         portfolio.setTargetAmount(request.getTargetAmount());
 
@@ -40,7 +40,7 @@ public class PortfolioService {
 
         return new GoalAccountResponse(
                 saved.getId(),
-                saved.getTitle(),
+                saved.getName(),
                 saved.getTotalAmount(),
                 saved.getTargetAmount()
         );
@@ -51,7 +51,7 @@ public class PortfolioService {
         return list.stream()
                 .map(p -> new GoalAccountResponse(
                         p.getId(),
-                        p.getTitle(),
+                        p.getName(),
                         p.getTotalAmount(),
                         p.getTargetAmount()
                 ))

@@ -6,7 +6,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class GoalAccountRequest {
-    private String title;
+    private String name;
     private Long totalAmount;
     private Long targetAmount;
 }
