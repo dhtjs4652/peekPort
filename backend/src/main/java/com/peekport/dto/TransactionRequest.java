@@ -4,7 +4,6 @@ import com.peekport.model.TransactionType;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Getter @Setter
@@ -16,8 +15,8 @@ public class TransactionRequest {
     private Long goalAccountId;
 
     private LocalDate tradeDate;
-    private int quantity;
-    private BigDecimal price;
+    private Double quantity;
+    private Double price;
 
     private TransactionType type;       // BUY, SELL 등
     private String memo;
