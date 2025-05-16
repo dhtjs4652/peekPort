@@ -35,7 +35,10 @@ const LoginPage = () => {
 
     try {
       // 로그인 API 호출
-      const response = await axios.post('/api/auth/login', credentials);
+      const response = await axios.post(
+        'http://localhost:8080/api/auth/login',
+        credentials
+      );
 
       // JWT 토큰 저장
       const token = response.data.token || response.data.accessToken;
@@ -53,7 +56,7 @@ const LoginPage = () => {
       }
 
       // 로그인 성공 후 메인 페이지로 이동
-      navigate('/');
+      navigate('/dashboard');
     } catch (err) {
       console.error('로그인 오류:', err);
 

@@ -7,7 +7,7 @@ const PortfolioManagement = () => {
   // ✅ 상태 관리
   const [portfolios, setPortfolios] = useState([]);
   const [selectedPortfolio, setSelectedPortfolio] = useState(null);
-  const [portfolioTitle, setPortfolioTitle] = useState('');
+  const [portfolioName, setPortfolioName] = useState('');
   const [totalAmount, setTotalAmount] = useState('');
   const [targetAmount, setTargetAmount] = useState('');
   const [stocks, setStocks] = useState([]);
@@ -123,7 +123,7 @@ const PortfolioManagement = () => {
   // ✅ 포트폴리오 등록 함수
   const handlePortfolioSubmit = async () => {
     try {
-      if (!portfolioTitle) {
+      if (!portfolioName) {
         setError('포트폴리오 이름을 입력해주세요.');
         return;
       }
@@ -132,7 +132,7 @@ const PortfolioManagement = () => {
       await axios.post(
         '/api/portfolios',
         {
-          title: portfolioTitle,
+          name: portfolioName,
           totalAmount,
           targetAmount,
         },
@@ -148,7 +148,7 @@ const PortfolioManagement = () => {
       setTimeout(() => setSuccessMessage(null), 3000);
 
       // 폼 초기화
-      setPortfolioTitle('');
+      setPortfolioName('');
       setTotalAmount(0);
       setTargetAmount(0);
 
@@ -314,7 +314,7 @@ const PortfolioManagement = () => {
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:shadow'
                   }`}
                 >
-                  {portfolio.title}
+                  {portfolio.name}
                 </button>
               ))}
           </div>
@@ -327,8 +327,8 @@ const PortfolioManagement = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <input
             type="text"
-            value={portfolioTitle}
-            onChange={(e) => setPortfolioTitle(e.target.value)}
+            value={portfolioName}
+            onChange={(e) => setPortfolioName(e.target.value)}
             placeholder="포트폴리오 이름"
             className="p-2 border rounded focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition-all"
           />
