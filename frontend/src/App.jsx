@@ -11,6 +11,8 @@ import Dashboard from './components/Dashboard';
 import PortfolioManagement from './components/PortfolioManagement';
 import PortfolioAnalysis from './components/PortfolioAnalysis';
 import Navigation from './components/Navigation';
+import PublicNavigation from './components/PublicNavigation';
+import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import { isAuthenticated } from './utils/authUtils';
@@ -41,7 +43,7 @@ const ProtectedLayout = ({ children }) => {
 
     setTimeout(() => {
       // React Router로 페이지 이동
-      if (page === 'dashboard') navigate('/');
+      if (page === 'dashboard') navigate('/dashboard');
       else if (page === 'portfolio') navigate('/portfolio');
       else if (page === 'analysis') navigate('/analysis');
 
@@ -72,6 +74,26 @@ const ProtectedLayout = ({ children }) => {
   );
 };
 
+// 공개 레이아웃 컴포넌트 - 모든 사용자가 접근 가능한 레이아웃
+const PublicLayout = ({ children }) => {
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <PublicNavigation />
+      <main className="flex-grow">{children}</main>
+      <footer className="bg-white border-t py-4 text-center text-gray-600 text-sm">
+        <div className="container mx-auto">
+          &copy; {new Date().getFullYear()} PeekPort. All rights reserved.
+        </div>
+      </footer>
+    </div>
+  );
+};
+
+// 인증된 사용자 리다이렉트 컴포넌트
+const AuthRedirect = ({ children }) => {
+  return isAuthenticated() ? <Navigate to="/dashboard" /> : children;
+};
+
 function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [authChecked, setAuthChecked] = useState(false);
@@ -100,19 +122,49 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* 공개 라우트 */}
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<SignupPage />} />
-
-        {/* 보호된 라우트 */}
+        {/* 공개 라우트 - 홈페이지 */}
         <Route
           path="/"
+          element={
+            <PublicLayout>
+              <HomePage />
+            </PublicLayout>
+          }
+        />
+
+        {/* 공개 라우트 - 로그인/회원가입 (로그인 상태면 대시보드로 리다이렉트) */}
+        <Route
+          path="/login"
+          element={
+            <AuthRedirect>
+              <PublicLayout>
+                <LoginPage />
+              </PublicLayout>
+            </AuthRedirect>
+          }
+        />
+
+        <Route
+          path="/signup"
+          element={
+            <AuthRedirect>
+              <PublicLayout>
+                <SignupPage />
+              </PublicLayout>
+            </AuthRedirect>
+          }
+        />
+
+        {/* 보호된 라우트 - 대시보드 등 (로그인 필요) */}
+        <Route
+          path="/dashboard"
           element={
             <ProtectedLayout>
               <Dashboard />
             </ProtectedLayout>
           }
         />
+
         <Route
           path="/portfolio"
           element={
@@ -121,6 +173,7 @@ function App() {
             </ProtectedLayout>
           }
         />
+
         <Route
           path="/analysis"
           element={
