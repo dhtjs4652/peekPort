@@ -1,11 +1,15 @@
 package com.peekport.controller.user;
 
+import com.peekport.dto.LoginRequest;
 import com.peekport.dto.SignupRequest;
 import com.peekport.model.User;
 import com.peekport.service.UserService;
 import com.peekport.config.JwtUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -27,11 +31,10 @@ public class AuthController {
 
 
     @PostMapping("/login")
-    public String login(@RequestParam String email,
-                        @RequestParam String password) {
-        User user = userService.login(email, password);
+    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+        User user = userService.login(request.getEmail(), request.getPassword());
         String token = jwtUtil.generateToken(user.getEmail());
-        return token;
+        return ResponseEntity.ok(Map.of("token", token)); // JSON 응답으로 리턴
     }
 
     @GetMapping("/me")
