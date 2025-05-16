@@ -16,7 +16,7 @@ public class GoalAccount {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String title; // 포트폴리오 이름
+    private String name; // 포트폴리오 이름
 
     private Long targetAmount; // 목표 금액 (예: 1,000만 원)
 
