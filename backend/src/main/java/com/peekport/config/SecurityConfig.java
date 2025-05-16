@@ -14,6 +14,8 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -29,6 +31,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtUtil jwtUtil;
+    private final UserDetailsService userDetailsService;
     private final CorsConfigurationSource corsConfigurationSource;
 
     @Bean
@@ -44,9 +47,9 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
-                        .anyRequest().authenticated()
+                        .anyRequest().hasRole("USER") // or authenticated()
                 )
-                .addFilterBefore(new JwtFilter(jwtUtil), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new JwtFilter(jwtUtil, userDetailsService), UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 
@@ -54,9 +57,11 @@ public class SecurityConfig {
     static class JwtFilter extends OncePerRequestFilter {
 
         private final JwtUtil jwtUtil;
+        private final UserDetailsService userDetailsService;
 
-        public JwtFilter(JwtUtil jwtUtil) {
+        public JwtFilter(JwtUtil jwtUtil, UserDetailsService userDetailsService) {
             this.jwtUtil = jwtUtil;
+            this.userDetailsService = userDetailsService;
         }
 
         @Override
@@ -85,8 +90,11 @@ public class SecurityConfig {
                             new SimpleGrantedAuthority("ROLE_" + role)
                     );
 
+                    // 핵심: UserDetails로 principal 생성
+                    UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+
                     UsernamePasswordAuthenticationToken auth =
-                            new UsernamePasswordAuthenticationToken(email, null, authorities);
+                            new UsernamePasswordAuthenticationToken(userDetails, null, authorities);
 
                     SecurityContextHolder.getContext().setAuthentication(auth);
                 } catch (Exception e) {
@@ -94,7 +102,6 @@ public class SecurityConfig {
                     return;
                 }
             }
-
 
             filterChain.doFilter(request, response);
         }
