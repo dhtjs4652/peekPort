@@ -1,6 +1,7 @@
 // LoginPage.jsx - 로그인 페이지 컴포넌트
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { saveToken, saveUser } from '../utils/authUtils';
 import axios from 'axios';
 
 const LoginPage = () => {
@@ -59,7 +60,7 @@ const LoginPage = () => {
       }
 
       // localStorage에 토큰 저장 및 확인
-      localStorage.setItem('jwt', token);
+      saveToken(token);
       console.log('토큰 저장됨:', token);
 
       // 로컬 스토리지에 실제로 저장되었는지 확인
@@ -68,12 +69,18 @@ const LoginPage = () => {
 
       // 사용자 정보도 저장 (선택적)
       if (response.data.user) {
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+        saveUser(response.data.user);
         console.log('사용자 정보 저장됨:', response.data.user);
       }
 
       // 로그인 성공 후 메인 페이지로 이동
       navigate('/dashboard');
+      setTimeout(() => {
+        if (window.location.pathname !== '/dashboard') {
+          console.log('navigate가 작동하지 않음, window.location 사용');
+          window.location.href = '/dashboard';
+        }
+      }, 500);
     } catch (error) {
       // 에러 객체 자세히 로깅
       console.error('로그인 오류 발생:', error);
