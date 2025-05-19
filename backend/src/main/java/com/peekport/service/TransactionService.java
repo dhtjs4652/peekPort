@@ -1,6 +1,7 @@
 package com.peekport.service;
 
 import com.peekport.dto.TransactionRequest;
+import com.peekport.dto.TransactionResponse;
 import com.peekport.model.Asset;
 import com.peekport.model.GoalAccount;
 import com.peekport.model.Transaction;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -55,4 +57,17 @@ public class TransactionService {
 
         return transactionRepository.save(tx);
     }
+
+    // 이메일 기반 유저 정보 확인
+    public List<TransactionResponse> getTransactionsByUser(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        List<Transaction> transactions = transactionRepository.findByAssetUser(user);
+
+        return transactions.stream()
+                .map(TransactionResponse::new)
+                .toList();
+    }
+
 }

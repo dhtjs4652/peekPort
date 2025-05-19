@@ -47,7 +47,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
-                        .anyRequest().hasRole("USER") // or authenticated()
+                        .anyRequest().authenticated() // 로그인했다면 일단 모든 요청은 접근 권한을 가질 수 있음 (관리자 페이지를 만들기 전까지)
                 )
                 .addFilterBefore(new JwtFilter(jwtUtil, userDetailsService), UsernamePasswordAuthenticationFilter.class)
                 .build();
