@@ -16,7 +16,7 @@ const PortfolioListPage = () => {
       setError(null);
 
       // localStorage에서 토큰 가져오기
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('jwt');
 
       // 토큰이 없으면 로그인 페이지로 리다이렉트
       if (!token) {
@@ -50,7 +50,7 @@ const PortfolioListPage = () => {
       // 인증 오류(401) 처리
       if (err.response && err.response.status === 401) {
         setError('인증이 만료되었습니다. 다시 로그인해주세요.');
-        localStorage.removeItem('token'); // 토큰 삭제
+        localStorage.removeItem('jwt'); // 토큰 삭제
         setTimeout(() => navigate('/login'), 2000); // 2초 후 로그인 페이지로 이동
         return;
       }

@@ -46,11 +46,10 @@ const PortfolioManagement = () => {
       console.log('처리된 포트폴리오 데이터:', portfolioData);
       setPortfolios(portfolioData);
 
-      // 첫 번째 포트폴리오 자동 선택
+      // 첫 번째 포트폴리오 자동 선택 대신,
+      // 포트폴리오 선택 없이 처음에는 안내 메시지만 표시 (자동 선택 제거)
       if (portfolioData.length > 0 && !selectedPortfolio) {
-        console.log('첫 번째 포트폴리오 선택:', portfolioData[0]);
-        setSelectedPortfolio(portfolioData[0]);
-        fetchStocksByPortfolioId(portfolioData[0].id);
+        setError('포트폴리오를 선택해주세요');
       }
     } catch (err) {
       console.error('포트폴리오 로딩 실패:', err);
@@ -136,11 +135,19 @@ const PortfolioManagement = () => {
         return;
       }
 
-      await authAxios.post('/api/portfolios', {
+      console.log('포트폴리오 등록 요청 데이터:', {
         name: portfolioName,
-        totalAmount,
-        targetAmount,
+        totalAmount: totalAmount ? Number(totalAmount) : 0,
+        targetAmount: targetAmount ? Number(targetAmount) : 0,
       });
+
+      const response = await authAxios.post('/api/portfolios', {
+        name: portfolioName,
+        totalAmount: totalAmount ? Number(totalAmount) : 0,
+        targetAmount: targetAmount ? Number(targetAmount) : 0,
+      });
+
+      console.log('포트폴리오 등록 응답:', response.data);
 
       // 성공 메시지 표시
       setSuccessMessage('포트폴리오가 등록되었습니다.');
@@ -148,15 +155,32 @@ const PortfolioManagement = () => {
 
       // 폼 초기화
       setPortfolioName('');
-      setTotalAmount(0);
-      setTargetAmount(0);
+      setTotalAmount('');
+      setTargetAmount('');
 
       // 포트폴리오 목록 갱신
       fetchPortfolios();
     } catch (err) {
       console.error('등록 실패:', err);
-      console.error('오류 상세 정보:', err.response?.data || err.message);
-      setError('등록 중 오류가 발생했습니다.');
+
+      // 자세한 오류 정보 로깅
+      if (err.response) {
+        console.error('응답 상태:', err.response.status);
+        console.error('응답 데이터:', err.response.data);
+
+        // 구체적인 오류 메시지 표시
+        if (err.response.data && err.response.data.message) {
+          setError(err.response.data.message);
+        } else {
+          setError(`서버 오류 (${err.response.status}): 등록에 실패했습니다.`);
+        }
+      } else if (err.request) {
+        console.error('요청 정보:', err.request);
+        setError('서버에 연결할 수 없습니다. 네트워크 연결을 확인하세요.');
+      } else {
+        console.error('오류 메시지:', err.message);
+        setError('요청 처리 중 오류가 발생했습니다.');
+      }
     }
   };
 
@@ -174,14 +198,28 @@ const PortfolioManagement = () => {
         return;
       }
 
-      // API 호출
-      await authAxios.post(`/api/portfolios/${selectedPortfolio.id}/stocks`, {
+      // API 호출 전 로깅
+      console.log('종목 추가 요청 데이터:', {
         name: newStock.name,
         purchasePrice: Number(newStock.purchasePrice),
         quantity: Number(newStock.quantity),
         term: newStock.term,
-        currentPrice: Number(newStock.purchasePrice), // 초기값은 매수가와 동일하게 설정
+        currentPrice: Number(newStock.purchasePrice),
       });
+
+      // API 호출
+      const response = await authAxios.post(
+        `/api/portfolios/${selectedPortfolio.id}/stocks`,
+        {
+          name: newStock.name,
+          purchasePrice: Number(newStock.purchasePrice),
+          quantity: Number(newStock.quantity),
+          term: newStock.term,
+          currentPrice: Number(newStock.purchasePrice), // 초기값은 매수가와 동일하게 설정
+        }
+      );
+
+      console.log('종목 추가 응답:', response.data);
 
       // 성공 메시지 표시
       setSuccessMessage('종목이 추가되었습니다.');
@@ -199,8 +237,27 @@ const PortfolioManagement = () => {
       fetchStocksByPortfolioId(selectedPortfolio.id);
     } catch (err) {
       console.error('종목 추가 실패:', err);
-      console.error('오류 상세 정보:', err.response?.data || err.message);
-      setError('종목 추가 중 오류가 발생했습니다.');
+
+      // 자세한 오류 정보 로깅
+      if (err.response) {
+        console.error('응답 상태:', err.response.status);
+        console.error('응답 데이터:', err.response.data);
+
+        // 구체적인 오류 메시지 표시
+        if (err.response.data && err.response.data.message) {
+          setError(err.response.data.message);
+        } else {
+          setError(
+            `서버 오류 (${err.response.status}): 종목 추가에 실패했습니다.`
+          );
+        }
+      } else if (err.request) {
+        console.error('요청 정보:', err.request);
+        setError('서버에 연결할 수 없습니다. 네트워크 연결을 확인하세요.');
+      } else {
+        console.error('오류 메시지:', err.message);
+        setError('요청 처리 중 오류가 발생했습니다.');
+      }
     }
   };
 
@@ -212,9 +269,15 @@ const PortfolioManagement = () => {
         return;
       }
 
+      console.log(
+        `종목 삭제 요청: 포트폴리오 ID ${selectedPortfolio.id}, 종목 ID ${stockId}`
+      );
+
       await authAxios.delete(
         `/api/portfolios/${selectedPortfolio.id}/stocks/${stockId}`
       );
+
+      console.log('종목 삭제 성공');
 
       // 화면에서 종목 제거
       setStocks((prev) =>
@@ -226,8 +289,27 @@ const PortfolioManagement = () => {
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
       console.error('종목 삭제 실패:', err);
-      console.error('오류 상세 정보:', err.response?.data || err.message);
-      setError('종목 삭제 중 오류가 발생했습니다.');
+
+      // 자세한 오류 정보 로깅
+      if (err.response) {
+        console.error('응답 상태:', err.response.status);
+        console.error('응답 데이터:', err.response.data);
+
+        // 구체적인 오류 메시지 표시
+        if (err.response.data && err.response.data.message) {
+          setError(err.response.data.message);
+        } else {
+          setError(
+            `서버 오류 (${err.response.status}): 종목 삭제에 실패했습니다.`
+          );
+        }
+      } else if (err.request) {
+        console.error('요청 정보:', err.request);
+        setError('서버에 연결할 수 없습니다. 네트워크 연결을 확인하세요.');
+      } else {
+        console.error('오류 메시지:', err.message);
+        setError('요청 처리 중 오류가 발생했습니다.');
+      }
     }
   };
 
@@ -319,14 +401,14 @@ const PortfolioManagement = () => {
           <input
             type="number"
             value={totalAmount}
-            onChange={(e) => setTotalAmount(Number(e.target.value))}
+            onChange={(e) => setTotalAmount(e.target.value)}
             placeholder="현재 자산"
             className="p-2 border rounded focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition-all"
           />
           <input
             type="number"
             value={targetAmount}
-            onChange={(e) => setTargetAmount(Number(e.target.value))}
+            onChange={(e) => setTargetAmount(e.target.value)}
             placeholder="목표 자산"
             className="p-2 border rounded focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition-all"
           />
