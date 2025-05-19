@@ -3,17 +3,17 @@ import axios from 'axios';
 
 // JWT 토큰 저장
 export const saveToken = (token) => {
-  localStorage.setItem('token', token);
+  localStorage.setItem('jwt', token);
 };
 
 // JWT 토큰 가져오기
 export const getToken = () => {
-  return localStorage.getItem('token');
+  return localStorage.getItem('jwt');
 };
 
 // JWT 토큰 삭제
 export const removeToken = () => {
-  localStorage.removeItem('token');
+  localStorage.removeItem('jwt');
 };
 
 // 사용자 정보 저장
