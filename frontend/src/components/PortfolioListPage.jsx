@@ -178,10 +178,18 @@ const PortfolioListPage = () => {
                 </h2>
                 <div className="flex justify-between items-center text-sm text-gray-500 mb-4">
                   <span>
-                    총 자산: {portfolio.totalAmount?.toLocaleString() || 0}원
+                    총 자산:{' '}
+                    {portfolio.totalAmount
+                      ? portfolio.totalAmount.toLocaleString() + '원'
+                      : '0원'}
                   </span>
                   <span>
-                    목표: {portfolio.targetAmount?.toLocaleString() || 0}원
+                    <p>
+                      목표 금액:{' '}
+                      {portfolio.targetAmount
+                        ? portfolio.targetAmount.toLocaleString() + '원'
+                        : '미입력'}
+                    </p>
                   </span>
                 </div>
 

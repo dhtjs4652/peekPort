@@ -8,6 +8,7 @@ import com.peekport.service.PortfolioService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -36,12 +37,13 @@ public class PortfolioController {
 
     @GetMapping
     public ResponseEntity<List<GoalAccountResponse>> getPortfolios(
-            @AuthenticationPrincipal String email
+            @AuthenticationPrincipal UserDetails user
     ) {
-        User user = userRepository.findByEmail(email)
+        User realUser = userRepository.findByEmail(user.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        List<GoalAccountResponse> response = portfolioService.getPortfoliosByUser(user);
+        List<GoalAccountResponse> response = portfolioService.getPortfoliosByUser(realUser);
         return ResponseEntity.ok(response);
     }
+
 }

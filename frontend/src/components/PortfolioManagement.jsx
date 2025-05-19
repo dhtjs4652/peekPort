@@ -117,7 +117,12 @@ const PortfolioManagement = () => {
   const handlePortfolioSelect = (portfolio) => {
     console.log('포트폴리오 선택:', portfolio);
     setSelectedPortfolio(portfolio);
-    fetchStocksByPortfolioId(portfolio.id);
+    if (portfolio && portfolio.id) {
+      fetchStocksByPortfolioId(portfolio.id);
+    } else {
+      console.error('선택된 포트폴리오에 ID가 없습니다');
+      setStocks([]);
+    }
   };
 
   // ✅ 포트폴리오 등록 함수
@@ -314,7 +319,7 @@ const PortfolioManagement = () => {
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:shadow'
                   }`}
                 >
-                  {portfolio.name}
+                  {portfolio.name || '이름 없음'}
                 </button>
               ))}
           </div>
@@ -465,10 +470,15 @@ const PortfolioManagement = () => {
                   >
                     <div className="flex justify-between items-start mb-2">
                       <div>
-                        <h3 className="font-bold">{stock.name}</h3>
+                        <h3 className="font-bold">
+                          {stock.name || '이름 없음'}
+                        </h3>
                         <p className="text-sm text-gray-500">
-                          {stock.quantity}주 ×{' '}
-                          {stock.purchasePrice.toLocaleString()}원
+                          {stock.quantity || 0}주 ×{' '}
+                          {stock.purchasePrice
+                            ? stock.purchasePrice.toLocaleString()
+                            : '0'}
+                          원
                         </p>
                       </div>
                       <button
