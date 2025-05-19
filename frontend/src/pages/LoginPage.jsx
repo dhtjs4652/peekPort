@@ -48,7 +48,7 @@ const LoginPage = () => {
       }
 
       // localStorage에 토큰 저장
-      localStorage.setItem('token', token);
+      localStorage.setItem('jwt', token);
 
       // 사용자 정보도 저장 (선택적)
       if (response.data.user) {

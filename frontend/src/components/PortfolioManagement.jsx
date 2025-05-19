@@ -31,7 +31,7 @@ const PortfolioManagement = () => {
       setLoadingPortfolios(true);
       setError(null);
 
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('jwt');
       console.log('토큰 확인:', token ? '토큰 있음' : '토큰 없음');
 
       const response = await axios.get('/api/portfolios', {
@@ -74,7 +74,7 @@ const PortfolioManagement = () => {
     try {
       setLoadingStocks(true);
 
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('jwt');
       const response = await axios.get(
         `/api/portfolios/${portfolioId}/stocks`,
         {
@@ -133,7 +133,7 @@ const PortfolioManagement = () => {
         return;
       }
 
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('jwt');
       await axios.post(
         '/api/portfolios',
         {
@@ -181,7 +181,7 @@ const PortfolioManagement = () => {
       }
 
       // API 호출
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('jwt');
       await axios.post(
         `/api/portfolios/${selectedPortfolio.id}/stocks`,
         {
@@ -227,7 +227,7 @@ const PortfolioManagement = () => {
         return;
       }
 
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('jwt');
       await axios.delete(
         `/api/portfolios/${selectedPortfolio.id}/stocks/${stockId}`,
         {
