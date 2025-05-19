@@ -1,4 +1,4 @@
-// authUtils.js - 인증 관련 유틸리티 함수
+// authUtils.js - 인증 관련 유틸리티 함수 
 import axios from 'axios';
 
 // JWT 토큰 저장
@@ -64,7 +64,63 @@ authAxios.interceptors.request.use(
   }
 );
 
-// 응답 인터셉터 - 401 오류 처리
+// 글로벌 axios 설정 - 모든 요청에 인증 헤더 추가
+axios.interceptors.request.use(
+  (config) => {
+    const token = getToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// 글로벌 axios 응답 인터셉터 - 401, 403 오류 등 처리
+axios.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    console.error('API 오류:', error.message);
+    
+    // 서버 응답이 있는 경우
+    if (error.response) {
+      const { status } = error.response;
+      
+      // 401 Unauthorized: 인증 오류
+      if (status === 401) {
+        console.log('인증 오류: 로그인 만료됨');
+        alert('세션이 만료되었습니다. 다시 로그인해주세요.');
+        logout();
+        window.location.href = '/login';
+      } 
+      // 403 Forbidden: 권한 오류
+      else if (status === 403) {
+        console.log('접근 권한 오류 (403 Forbidden)');
+        alert('접근 권한이 없는 포트폴리오입니다.');
+        
+        // 현재 경로가 포트폴리오 상세 관련인지 확인
+        const currentPath = window.location.pathname;
+        const isPortfolioDetailPage = currentPath.includes('/portfolios/') && 
+                                    (currentPath.includes('/stocks') || 
+                                     currentPath.includes('/transactions'));
+        
+        // 포트폴리오 상세 페이지인 경우 목록으로 리다이렉트
+        if (isPortfolioDetailPage) {
+          // /portfolios/{id}/stocks 같은 경로에서 portfolio 페이지로 이동
+          window.location.href = '/portfolio';
+        }
+      }
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
+// authAxios 응답 인터셉터 - 401 오류 처리
 authAxios.interceptors.response.use(
   (response) => {
     return response;
