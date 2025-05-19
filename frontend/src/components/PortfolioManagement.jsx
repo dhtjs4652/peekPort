@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { authAxios } from '../utils/authUtils'; // axios 대신 authAxios 사용
 import { Plus, Trash2, Edit2, X, CheckCircle } from 'lucide-react';
 
 // 포트폴리오 관리 컴포넌트
@@ -31,14 +31,8 @@ const PortfolioManagement = () => {
       setLoadingPortfolios(true);
       setError(null);
 
-      const token = localStorage.getItem('jwt');
-      console.log('토큰 확인:', token ? '토큰 있음' : '토큰 없음');
-
-      const response = await axios.get('/api/portfolios', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      console.log('포트폴리오 목록 요청 시작');
+      const response = await authAxios.get('/api/portfolios');
 
       console.log('API 응답 데이터:', response.data);
 
@@ -73,17 +67,13 @@ const PortfolioManagement = () => {
   const fetchStocksByPortfolioId = async (portfolioId) => {
     try {
       setLoadingStocks(true);
+      console.log(`종목 목록 요청 시작: 포트폴리오 ID ${portfolioId}`);
 
-      const token = localStorage.getItem('jwt');
-      const response = await axios.get(
-        `/api/portfolios/${portfolioId}/stocks`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      // 요청 URL 로깅
+      const url = `/api/portfolios/${portfolioId}/stocks`;
+      console.log('요청 URL:', url);
 
+      const response = await authAxios.get(url);
       console.log('종목 API 응답 데이터:', response.data);
 
       // 응답 데이터가 배열인지 확인
@@ -97,8 +87,21 @@ const PortfolioManagement = () => {
       setStocks(stocksData);
     } catch (err) {
       console.error('종목 로딩 실패:', err);
-      console.error('오류 상세 정보:', err.response?.data || err.message);
-      setError('종목을 로딩하는 중 오류가 발생했습니다.');
+
+      // 요청 및 응답 세부 정보 로깅
+      if (err.request) console.error('요청 정보:', err.request);
+      if (err.response) {
+        console.error('응답 상태:', err.response.status);
+        console.error('응답 데이터:', err.response.data);
+      }
+
+      // 403 오류 명시적 처리
+      if (err.response && err.response.status === 403) {
+        setError('이 포트폴리오에 접근할 권한이 없습니다.');
+      } else {
+        setError('종목을 로딩하는 중 오류가 발생했습니다.');
+      }
+
       // 오류 발생 시 빈 배열로 초기화
       setStocks([]);
     } finally {
@@ -133,20 +136,11 @@ const PortfolioManagement = () => {
         return;
       }
 
-      const token = localStorage.getItem('jwt');
-      await axios.post(
-        '/api/portfolios',
-        {
-          name: portfolioName,
-          totalAmount,
-          targetAmount,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      await authAxios.post('/api/portfolios', {
+        name: portfolioName,
+        totalAmount,
+        targetAmount,
+      });
 
       // 성공 메시지 표시
       setSuccessMessage('포트폴리오가 등록되었습니다.');
@@ -181,22 +175,13 @@ const PortfolioManagement = () => {
       }
 
       // API 호출
-      const token = localStorage.getItem('jwt');
-      await axios.post(
-        `/api/portfolios/${selectedPortfolio.id}/stocks`,
-        {
-          name: newStock.name,
-          purchasePrice: Number(newStock.purchasePrice),
-          quantity: Number(newStock.quantity),
-          term: newStock.term,
-          currentPrice: Number(newStock.purchasePrice), // 초기값은 매수가와 동일하게 설정
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      await authAxios.post(`/api/portfolios/${selectedPortfolio.id}/stocks`, {
+        name: newStock.name,
+        purchasePrice: Number(newStock.purchasePrice),
+        quantity: Number(newStock.quantity),
+        term: newStock.term,
+        currentPrice: Number(newStock.purchasePrice), // 초기값은 매수가와 동일하게 설정
+      });
 
       // 성공 메시지 표시
       setSuccessMessage('종목이 추가되었습니다.');
@@ -227,14 +212,8 @@ const PortfolioManagement = () => {
         return;
       }
 
-      const token = localStorage.getItem('jwt');
-      await axios.delete(
-        `/api/portfolios/${selectedPortfolio.id}/stocks/${stockId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      await authAxios.delete(
+        `/api/portfolios/${selectedPortfolio.id}/stocks/${stockId}`
       );
 
       // 화면에서 종목 제거
