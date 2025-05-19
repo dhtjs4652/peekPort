@@ -34,37 +34,70 @@ const LoginPage = () => {
     setError('');
 
     try {
-      // 로그인 API 호출
+      // URL에 호스트 명시적으로 추가 - 절대 경로 사용
       const response = await axios.post(
         'http://localhost:8080/api/auth/login',
-        credentials
+        credentials,
+        {
+          // axios 요청에 추가 설정
+          withCredentials: true, // CORS 쿠키 처리를 위해 필요할 수 있음
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
       );
 
-      // JWT 토큰 저장
+      // 응답 확인을 위해 전체 응답 로깅
+      console.log('로그인 응답:', response);
+
+      // JWT 토큰 확인 및 저장
       const token = response.data.token || response.data.accessToken;
 
       if (!token) {
+        console.error('토큰이 응답에 포함되어 있지 않습니다:', response.data);
         throw new Error('토큰이 응답에 포함되어 있지 않습니다.');
       }
 
-      // localStorage에 토큰 저장
+      // localStorage에 토큰 저장 및 확인
       localStorage.setItem('jwt', token);
+      console.log('토큰 저장됨:', token);
+
+      // 로컬 스토리지에 실제로 저장되었는지 확인
+      const savedToken = localStorage.getItem('jwt');
+      console.log('저장된 토큰 확인:', savedToken);
 
       // 사용자 정보도 저장 (선택적)
       if (response.data.user) {
         localStorage.setItem('user', JSON.stringify(response.data.user));
+        console.log('사용자 정보 저장됨:', response.data.user);
       }
 
       // 로그인 성공 후 메인 페이지로 이동
       navigate('/dashboard');
-    } catch (err) {
-      console.error('로그인 오류:', err);
+    } catch (error) {
+      // 에러 객체 자세히 로깅
+      console.error('로그인 오류 발생:', error);
 
-      // 오류 메시지 설정
-      if (err.response && err.response.data && err.response.data.message) {
-        setError(err.response.data.message);
+      if (error.response) {
+        // 서버 응답이 있는 경우 (4xx, 5xx 상태 코드)
+        console.error('서버 응답 오류:', {
+          status: error.response.status,
+          data: error.response.data,
+        });
+
+        if (error.response.data && error.response.data.message) {
+          setError(error.response.data.message);
+        } else {
+          setError(`서버 오류 (${error.response.status}): 다시 시도해주세요.`);
+        }
+      } else if (error.request) {
+        // 요청은 보냈지만 응답을 받지 못한 경우
+        console.error('서버로부터 응답이 없습니다:', error.request);
+        setError('서버 연결에 실패했습니다. 네트워크 연결을 확인해주세요.');
       } else {
-        setError('로그인 중 오류가 발생했습니다. 다시 시도해주세요.');
+        // 요청 설정 중 오류가 발생한 경우
+        console.error('요청 설정 오류:', error.message);
+        setError('요청 처리 중 오류가 발생했습니다.');
       }
     } finally {
       setIsLoading(false);
