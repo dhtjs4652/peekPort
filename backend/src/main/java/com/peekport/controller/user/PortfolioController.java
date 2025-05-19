@@ -24,10 +24,10 @@ public class PortfolioController {
     @PostMapping
     public ResponseEntity<GoalAccountResponse> createPortfolio(
             @RequestBody GoalAccountRequest request,
-            @AuthenticationPrincipal String email // JwtFilter에서 등록된 이메일
+            @AuthenticationPrincipal UserDetails userDetails // String email 대신 UserDetails로 변경
     ) {
         // 이메일로 User 객체 조회
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         // 서비스로 위임
@@ -37,13 +37,12 @@ public class PortfolioController {
 
     @GetMapping
     public ResponseEntity<List<GoalAccountResponse>> getPortfolios(
-            @AuthenticationPrincipal UserDetails user
+            @AuthenticationPrincipal UserDetails userDetails // 여기도 UserDetails로 변경
     ) {
-        User realUser = userRepository.findByEmail(user.getUsername())
+        User realUser = userRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         List<GoalAccountResponse> response = portfolioService.getPortfoliosByUser(realUser);
         return ResponseEntity.ok(response);
     }
-
 }

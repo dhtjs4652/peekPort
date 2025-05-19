@@ -86,18 +86,18 @@ public class SecurityConfig {
                     String email = claims.getSubject();
                     String role = claims.get("role", String.class);
 
-                    List<GrantedAuthority> authorities = List.of(
-                            new SimpleGrantedAuthority("ROLE_" + role)
-                    );
-
-                    // 핵심: UserDetails로 principal 생성
+                    // UserDetails 객체 로드
                     UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
+                    // UserDetails를 Authentication 객체의 principal로 설정
                     UsernamePasswordAuthenticationToken auth =
-                            new UsernamePasswordAuthenticationToken(userDetails, null, authorities);
+                            new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
 
                     SecurityContextHolder.getContext().setAuthentication(auth);
                 } catch (Exception e) {
+                    // 상세 로깅 추가
+                    System.err.println("JWT 처리 중 오류 발생: " + e.getMessage());
+                    e.printStackTrace();
                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                     return;
                 }
