@@ -31,8 +31,7 @@ public class TransactionService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
-        GoalAccount goal = goalAccountRepository.findById(dto.getGoalAccountId())
-                .filter(g -> g.getUser().getId().equals(user.getId()))
+        GoalAccount goal = goalAccountRepository.findByIdAndUser(dto.getGoalAccountId(), user)
                 .orElseThrow(() -> new RuntimeException("사용자 소유의 목표 계좌가 아닙니다."));
 
         // 종목이 이미 존재하면 재사용, 없으면 생성

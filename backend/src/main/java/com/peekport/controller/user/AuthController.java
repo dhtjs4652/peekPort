@@ -43,7 +43,7 @@ public class AuthController {
             throw new RuntimeException("비밀번호 불일치");
         }
 
-        String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name()); // ✅ 역할 포함
+        String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name()); //  역할 포함
 
         return ResponseEntity.ok(new TokenResponse(token));
     }
