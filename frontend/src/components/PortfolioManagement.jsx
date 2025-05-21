@@ -14,6 +14,7 @@ const PortfolioManagement = () => {
   const [loadingPortfolios, setLoadingPortfolios] = useState(false);
   const [loadingStocks, setLoadingStocks] = useState(false);
   const [error, setError] = useState(null);
+  const [infoMessage, setInfoMessage] = useState(null); // 안내 메시지를 위한 상태 추가
   const [successMessage, setSuccessMessage] = useState(null);
   const [activeTab, setActiveTab] = useState('short');
 
@@ -49,7 +50,7 @@ const PortfolioManagement = () => {
       // 첫 번째 포트폴리오 자동 선택 대신,
       // 포트폴리오 선택 없이 처음에는 안내 메시지만 표시 (자동 선택 제거)
       if (portfolioData.length > 0 && !selectedPortfolio) {
-        setError('포트폴리오를 선택해주세요');
+        setInfoMessage('포트폴리오를 선택해주세요');
       }
     } catch (err) {
       console.error('포트폴리오 로딩 실패:', err);
@@ -119,6 +120,12 @@ const PortfolioManagement = () => {
   const handlePortfolioSelect = (portfolio) => {
     console.log('포트폴리오 선택:', portfolio);
     setSelectedPortfolio(portfolio);
+
+    // 포트폴리오 선택 시 "포트폴리오를 선택해주세요" 안내 메시지만 제거
+    if (infoMessage === '포트폴리오를 선택해주세요') {
+      setInfoMessage(null);
+    }
+
     if (portfolio && portfolio.id) {
       fetchStocksByPortfolioId(portfolio.id);
     } else {
@@ -345,6 +352,15 @@ const PortfolioManagement = () => {
           >
             닫기
           </button>
+        </div>
+      )}
+
+      {/* 안내 메시지 표시 */}
+      {infoMessage && (
+        <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-4 rounded">
+          <div className="flex items-center">
+            <p>{infoMessage}</p>
+          </div>
         </div>
       )}
 
