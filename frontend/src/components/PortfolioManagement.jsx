@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { authAxios } from '../utils/authUtils'; // axios 대신 authAxios 사용
-import { Plus, Trash2, Edit2, X, CheckCircle } from 'lucide-react';
+import {
+  Plus,
+  Trash2,
+  Edit2,
+  X,
+  CheckCircle,
+  TrendingUp,
+  TrendingDown,
+} from 'lucide-react';
 
 // 포트폴리오 관리 컴포넌트
 const PortfolioManagement = () => {
@@ -328,6 +336,48 @@ const PortfolioManagement = () => {
     long: '장기',
   };
 
+  // 현재 탭의 종목들 필터링
+  const currentTabStocks = Array.isArray(stocks)
+    ? stocks.filter((stock) => stock.term === activeTab)
+    : [];
+
+  // 총계 계산
+  const calculateTotals = (stocks) => {
+    if (!Array.isArray(stocks) || stocks.length === 0) {
+      return {
+        totalInvestment: 0,
+        totalValue: 0,
+        totalProfitLoss: 0,
+        totalReturnRate: 0,
+      };
+    }
+
+    const totals = stocks.reduce(
+      (acc, stock) => {
+        const investment = (stock.purchasePrice || 0) * (stock.quantity || 0);
+        const value =
+          (stock.currentPrice || stock.purchasePrice || 0) *
+          (stock.quantity || 0);
+
+        acc.totalInvestment += investment;
+        acc.totalValue += value;
+
+        return acc;
+      },
+      { totalInvestment: 0, totalValue: 0 }
+    );
+
+    totals.totalProfitLoss = totals.totalValue - totals.totalInvestment;
+    totals.totalReturnRate =
+      totals.totalInvestment > 0
+        ? (totals.totalProfitLoss / totals.totalInvestment) * 100
+        : 0;
+
+    return totals;
+  };
+
+  const totals = calculateTotals(currentTabStocks);
+
   // 디버깅 메시지 출력
   console.log('현재 포트폴리오 상태:', {
     portfolios,
@@ -336,7 +386,7 @@ const PortfolioManagement = () => {
   });
 
   return (
-    <div className="max-w-4xl mx-auto p-4">
+    <div className="max-w-6xl mx-auto p-4">
       <h1 className="text-2xl font-bold mb-6">포트폴리오 관리</h1>
 
       {/* 에러 메시지 표시 */}
@@ -366,7 +416,7 @@ const PortfolioManagement = () => {
 
       {/* 성공 메시지 표시 */}
       {successMessage && (
-        <div className="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg flex items-center shadow-lg">
+        <div className="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg flex items-center shadow-lg z-50">
           <CheckCircle className="h-4 w-4 mr-2" />
           {successMessage}
         </div>
@@ -500,7 +550,7 @@ const PortfolioManagement = () => {
         )}
       </div>
 
-      {/* 종목 목록 UI */}
+      {/* 종목 목록 및 통계 UI */}
       <div className="bg-white rounded-lg p-6 shadow-sm">
         <div className="flex justify-between items-center mb-6">
           <div className="flex space-x-2">
@@ -529,45 +579,153 @@ const PortfolioManagement = () => {
           <div className="flex justify-center items-center h-40">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
           </div>
-        ) : Array.isArray(stocks) &&
-          stocks.filter((stock) => stock.term === activeTab).length === 0 ? (
+        ) : currentTabStocks.length === 0 ? (
           <div className="text-center py-10 text-gray-500">
             {termLabels[activeTab]} 기간의 종목이 없습니다. 새 종목을
             추가해보세요.
           </div>
         ) : (
-          <div className="space-y-4">
-            {Array.isArray(stocks) &&
-              stocks
-                .filter((stock) => stock.term === activeTab)
-                .map((stock) => (
-                  <div
-                    key={stock.id}
-                    className="border rounded-lg p-4 hover:shadow-md transition-all duration-300"
+          <>
+            {/* 총계 표시 */}
+            <div className="bg-gray-50 p-4 rounded-lg mb-6">
+              <h3 className="text-lg font-semibold mb-4 text-gray-800">
+                {termLabels[activeTab]} 투자 현황
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center">
+                  <p className="text-sm text-gray-600">총 투자금액</p>
+                  <p className="text-lg font-bold text-blue-600">
+                    {totals.totalInvestment.toLocaleString()}원
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm text-gray-600">평가금액</p>
+                  <p className="text-lg font-bold text-green-600">
+                    {totals.totalValue.toLocaleString()}원
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm text-gray-600">손익</p>
+                  <p
+                    className={`text-lg font-bold flex items-center justify-center ${
+                      totals.totalProfitLoss >= 0
+                        ? 'text-red-500'
+                        : 'text-blue-500'
+                    }`}
                   >
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h3 className="font-bold">
-                          {stock.name || '이름 없음'}
-                        </h3>
-                        <p className="text-sm text-gray-500">
-                          {stock.quantity || 0}주 ×{' '}
-                          {stock.purchasePrice
-                            ? stock.purchasePrice.toLocaleString()
-                            : '0'}
-                          원
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => handleDeleteStock(stock.id)}
-                        className="text-gray-400 hover:text-red-500 transition-all duration-150"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-          </div>
+                    {totals.totalProfitLoss >= 0 ? (
+                      <TrendingUp className="h-4 w-4 mr-1" />
+                    ) : (
+                      <TrendingDown className="h-4 w-4 mr-1" />
+                    )}
+                    {totals.totalProfitLoss >= 0 ? '+' : ''}
+                    {totals.totalProfitLoss.toLocaleString()}원
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm text-gray-600">수익률</p>
+                  <p
+                    className={`text-lg font-bold ${
+                      totals.totalReturnRate >= 0
+                        ? 'text-red-500'
+                        : 'text-blue-500'
+                    }`}
+                  >
+                    {totals.totalReturnRate >= 0 ? '+' : ''}
+                    {totals.totalReturnRate.toFixed(2)}%
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* 종목 테이블 */}
+            <div className="overflow-x-auto">
+              <table className="w-full table-auto border-collapse">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="border p-3 text-left">종목명</th>
+                    <th className="border p-3 text-center">수량</th>
+                    <th className="border p-3 text-right">매수가</th>
+                    <th className="border p-3 text-right">현재가</th>
+                    <th className="border p-3 text-right">투자금액</th>
+                    <th className="border p-3 text-right">평가금액</th>
+                    <th className="border p-3 text-right">손익</th>
+                    <th className="border p-3 text-right">수익률</th>
+                    <th className="border p-3 text-center">관리</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {currentTabStocks.map((stock) => {
+                    const purchasePrice = stock.purchasePrice || 0;
+                    const currentPrice = stock.currentPrice || purchasePrice;
+                    const quantity = stock.quantity || 0;
+                    const investment = purchasePrice * quantity;
+                    const value = currentPrice * quantity;
+                    const profitLoss = value - investment;
+                    const returnRate =
+                      investment > 0 ? (profitLoss / investment) * 100 : 0;
+
+                    return (
+                      <tr key={stock.id} className="hover:bg-gray-50">
+                        <td className="border p-3">
+                          <div>
+                            <p className="font-medium">
+                              {stock.name || '이름 없음'}
+                            </p>
+                            {stock.ticker && (
+                              <p className="text-sm text-gray-500">
+                                {stock.ticker}
+                              </p>
+                            )}
+                          </div>
+                        </td>
+                        <td className="border p-3 text-center">
+                          {quantity.toLocaleString()}
+                        </td>
+                        <td className="border p-3 text-right">
+                          {purchasePrice.toLocaleString()}원
+                        </td>
+                        <td className="border p-3 text-right">
+                          {currentPrice.toLocaleString()}원
+                        </td>
+                        <td className="border p-3 text-right">
+                          {investment.toLocaleString()}원
+                        </td>
+                        <td className="border p-3 text-right">
+                          {value.toLocaleString()}원
+                        </td>
+                        <td
+                          className={`border p-3 text-right font-medium ${
+                            profitLoss >= 0 ? 'text-red-500' : 'text-blue-500'
+                          }`}
+                        >
+                          {profitLoss >= 0 ? '+' : ''}
+                          {profitLoss.toLocaleString()}원
+                        </td>
+                        <td
+                          className={`border p-3 text-right font-medium ${
+                            returnRate >= 0 ? 'text-red-500' : 'text-blue-500'
+                          }`}
+                        >
+                          {returnRate >= 0 ? '+' : ''}
+                          {returnRate.toFixed(2)}%
+                        </td>
+                        <td className="border p-3 text-center">
+                          <button
+                            onClick={() => handleDeleteStock(stock.id)}
+                            className="text-gray-400 hover:text-red-500 transition-all duration-150"
+                            title="종목 삭제"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
     </div>
