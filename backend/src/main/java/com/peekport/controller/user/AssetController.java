@@ -34,7 +34,7 @@ public class AssetController {
         User user = userRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
-        GoalAccount goal = goalAccountRepository.findByIdAndUser(portfolioId, user)
+        GoalAccount goal = goalAccountRepository.findByIdAndUserId(portfolioId, user.getId())
                 .orElseThrow(() -> new AccessDeniedException("이 포트폴리오에 접근할 수 없습니다."));
 
         List<Asset> assets = assetRepository.findByGoalAccountAndUser(goal, user);

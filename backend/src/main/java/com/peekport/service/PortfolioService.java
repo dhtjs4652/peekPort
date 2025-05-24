@@ -57,6 +57,4 @@ public class PortfolioService {
                 ))
                 .toList();
     }
-
-    // 추후: 포트폴리오 등록, 수정, 삭제 메서드 추가 예정
 }

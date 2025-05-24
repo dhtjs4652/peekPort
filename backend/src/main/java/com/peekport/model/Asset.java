@@ -5,6 +5,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
 @Entity
 @Getter @Setter
 @NoArgsConstructor
@@ -13,11 +16,19 @@ public class Asset {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    private String category;
 
-    private String ticker;        // 종목 코드 (예: AAPL)
-    private String name;          // 종목 이름 (예: Apple)
+    private String name;              // 종목 이름 (예: 삼성전자)
+    private String ticker;            // 종목 코드 (예: 005930) - 선택사항
 
-    private String category;      // 자산 카테고리 (예: 주식, ETF, 현금 등)
+    private Integer quantity;         // 보유 수량
+    private BigDecimal purchasePrice; // 매수가
+    private BigDecimal currentPrice;  // 현재가 (실시간 업데이트용)
+
+    private String term;              // 투자 기간 (short, mid, long)
+
+    private LocalDateTime createdAt;  // 생성일시
+    private LocalDateTime updatedAt;  // 수정일시
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
@@ -26,4 +37,18 @@ public class Asset {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "goal_account_id")
     private GoalAccount goalAccount;  // 해당 종목이 소속된 포트폴리오
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+        if (currentPrice == null) {
+            currentPrice = purchasePrice; // 초기값은 매수가와 동일
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 }
