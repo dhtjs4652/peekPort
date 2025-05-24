@@ -25,7 +25,6 @@ public class AssetController {
     private final UserRepository userRepository;
     private final GoalAccountRepository goalAccountRepository;
     private final AssetRepository assetRepository;
-    private final AssetRepository findByGoalAccountAndUser;
 
     @GetMapping("/{portfolioId}/stocks")
     public ResponseEntity<List<AssetResponse>> getAssetsByPortfolio(
@@ -72,4 +71,64 @@ public class AssetController {
         return ResponseEntity.ok(new AssetResponse(saved));
     }
 
+    @DeleteMapping("/{portfolioId}/stocks/{stockId}")
+    public ResponseEntity<Void> deleteAsset(
+            @PathVariable Long portfolioId,
+            @PathVariable Long stockId,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        User user = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        // 포트폴리오 접근 권한 확인
+        GoalAccount goal = goalAccountRepository.findByIdAndUserId(portfolioId, user.getId())
+                .orElseThrow(() -> new AccessDeniedException("이 포트폴리오에 접근할 수 없습니다."));
+
+        // 종목 존재 및 권한 확인
+        Asset asset = assetRepository.findById(stockId)
+                .orElseThrow(() -> new RuntimeException("종목을 찾을 수 없습니다."));
+
+        // 종목이 해당 포트폴리오에 속하고 현재 사용자 소유인지 확인
+        if (!asset.getGoalAccount().getId().equals(portfolioId) || !asset.getUser().getId().equals(user.getId())) {
+            throw new AccessDeniedException("이 종목에 접근할 수 없습니다.");
+        }
+
+        assetRepository.delete(asset);
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/{portfolioId}/stocks/{stockId}")
+    public ResponseEntity<AssetResponse> updateAsset(
+            @PathVariable Long portfolioId,
+            @PathVariable Long stockId,
+            @RequestBody AssetRequest request,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        User user = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        // 포트폴리오 접근 권한 확인
+        GoalAccount goal = goalAccountRepository.findByIdAndUserId(portfolioId, user.getId())
+                .orElseThrow(() -> new AccessDeniedException("이 포트폴리오에 접근할 수 없습니다."));
+
+        // 종목 존재 및 권한 확인
+        Asset asset = assetRepository.findById(stockId)
+                .orElseThrow(() -> new RuntimeException("종목을 찾을 수 없습니다."));
+
+        // 종목이 해당 포트폴리오에 속하고 현재 사용자 소유인지 확인
+        if (!asset.getGoalAccount().getId().equals(portfolioId) || !asset.getUser().getId().equals(user.getId())) {
+            throw new AccessDeniedException("이 종목에 접근할 수 없습니다.");
+        }
+
+        // 종목 정보 업데이트
+        asset.setName(request.getName());
+        asset.setTicker(request.getTicker());
+        asset.setQuantity(request.getQuantity());
+        asset.setPurchasePrice(request.getPurchasePrice());
+        asset.setCurrentPrice(request.getCurrentPrice() != null ? request.getCurrentPrice() : request.getPurchasePrice());
+        asset.setTerm(request.getTerm());
+
+        Asset updated = assetRepository.save(asset);
+        return ResponseEntity.ok(new AssetResponse(updated));
+    }
 }
