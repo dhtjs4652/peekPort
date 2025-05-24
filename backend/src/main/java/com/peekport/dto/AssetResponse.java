@@ -45,10 +45,12 @@ public class AssetResponse {
             this.profitLoss = totalValue.subtract(totalInvestment);
 
             if (totalInvestment.compareTo(BigDecimal.ZERO) > 0) {
-                this.returnRate = profitLoss.divide(totalInvestment, 4, BigDecimal.ROUND_HALF_UP)
-                        .multiply(BigDecimal.valueOf(100))
-                        .setScale(2, RoundingMode.HALF_UP)
-                        .doubleValue();
+                BigDecimal rawRate = profitLoss
+                        .divide(totalInvestment, 4, BigDecimal.ROUND_HALF_UP)
+                        .multiply(BigDecimal.valueOf(100));
+
+                // 소수점 2자리까지 문자열 포맷 후 double로 변환
+                this.returnRate = Double.parseDouble(String.format("%.2f", rawRate));
             }
         }
     }
