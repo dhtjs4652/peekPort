@@ -4,6 +4,7 @@ import com.peekport.model.Asset;
 import lombok.Getter;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Getter
 public class AssetResponse {
@@ -16,11 +17,16 @@ public class AssetResponse {
     private BigDecimal currentPrice;
     private String term;
 
-    // 계산된 필드들
-    private BigDecimal totalInvestment;  // 총 투자금액
-    private BigDecimal totalValue;       // 총 평가금액
-    private BigDecimal profitLoss;       // 손익
-    private Double returnRate;           // 수익률
+    private BigDecimal totalInvestment;
+    private BigDecimal totalValue;
+    private BigDecimal profitLoss;
+    private Double returnRate;
+
+    // ✅ 추가된 필드
+    private BigDecimal avgPrice;
+    private String memo;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
     public AssetResponse(Asset asset) {
         this.id = asset.getId();
@@ -31,6 +37,12 @@ public class AssetResponse {
         this.purchasePrice = asset.getPurchasePrice();
         this.currentPrice = asset.getCurrentPrice();
         this.term = asset.getTerm();
+
+        // ✅ 추가 필드 매핑
+        this.avgPrice = asset.getPurchasePrice(); // 현재는 매입가 그대로
+        this.memo = asset.getMemo();
+        this.createdAt = asset.getCreatedAt();
+        this.updatedAt = asset.getUpdatedAt();
 
         // 계산된 값들
         if (quantity != null && purchasePrice != null) {
@@ -49,7 +61,6 @@ public class AssetResponse {
                         .divide(totalInvestment, 4, BigDecimal.ROUND_HALF_UP)
                         .multiply(BigDecimal.valueOf(100));
 
-                // 소수점 2자리까지 문자열 포맷 후 double로 변환
                 this.returnRate = Double.parseDouble(String.format("%.2f", rawRate));
             }
         }
