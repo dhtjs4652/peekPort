@@ -46,7 +46,7 @@ public class AssetController {
         return ResponseEntity.ok(new AssetResponse(asset));
     }
 
-    @PostMapping("/{portfolioId}/stocks")
+    @PostMapping("/{portfolioId}/stocks/add")
     public ResponseEntity<AssetResponse> addAsset(
             @PathVariable Long portfolioId,
             @RequestBody AssetRequest request,
