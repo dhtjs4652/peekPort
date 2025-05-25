@@ -15,8 +15,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/portfolios")
 @RequiredArgsConstructor
@@ -69,6 +67,8 @@ public class AssetController {
         asset.setTerm(request.getTerm());
         asset.setUser(user);
         asset.setGoalAccount(goal);
+        asset.setCategory(request.getCategory());
+        asset.setMemo(request.getMemo());
 
         Asset saved = assetRepository.save(asset);
         return ResponseEntity.ok(new AssetResponse(saved));
