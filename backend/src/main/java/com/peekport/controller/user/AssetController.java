@@ -130,6 +130,8 @@ public class AssetController {
         asset.setPurchasePrice(request.getPurchasePrice());
         asset.setCurrentPrice(request.getCurrentPrice() != null ? request.getCurrentPrice() : request.getPurchasePrice());
         asset.setTerm(request.getTerm());
+        asset.setCategory(request.getCategory());
+        asset.setMemo(request.getMemo());
 
         Asset updated = assetRepository.save(asset);
         return ResponseEntity.ok(new AssetResponse(updated));
