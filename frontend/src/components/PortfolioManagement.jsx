@@ -131,15 +131,18 @@ const PortfolioManagement = () => {
         setError('포트폴리오를 먼저 선택해주세요.');
         return;
       }
-      await authAxios.post(`/api/portfolios/${selectedPortfolio.id}/stocks`, {
-        name: newStock.name,
-        purchasePrice: Number(newStock.purchasePrice),
-        quantity: Number(newStock.quantity),
-        term: newStock.term,
-        currentPrice: Number(newStock.purchasePrice),
-        category: null,
-        memo: null,
-      });
+      await authAxios.post(
+        `/api/portfolios/${selectedPortfolio.id}/stocks/add`,
+        {
+          name: newStock.name,
+          purchasePrice: Number(newStock.purchasePrice),
+          quantity: Number(newStock.quantity),
+          term: newStock.term,
+          currentPrice: Number(newStock.purchasePrice),
+          category: null, //  추가
+          memo: null,
+        }
+      );
       setSuccessMessage('종목이 추가되었습니다.');
       setTimeout(() => setSuccessMessage(null), 3000);
       setNewStock({
