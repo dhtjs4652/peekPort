@@ -137,6 +137,8 @@ const PortfolioManagement = () => {
         quantity: Number(newStock.quantity),
         term: newStock.term,
         currentPrice: Number(newStock.purchasePrice),
+        category: null,
+        memo: null,
       });
       setSuccessMessage('종목이 추가되었습니다.');
       setTimeout(() => setSuccessMessage(null), 3000);
