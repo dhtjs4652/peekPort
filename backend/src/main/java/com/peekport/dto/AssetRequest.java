@@ -13,4 +13,7 @@ public class AssetRequest {
     private BigDecimal purchasePrice;
     private BigDecimal currentPrice;
     private String term;
+    private String category;
+    private String memo;
+
 }
