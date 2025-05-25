@@ -26,9 +26,10 @@ public class AssetController {
     private final GoalAccountRepository goalAccountRepository;
     private final AssetRepository assetRepository;
 
-    @GetMapping("/{portfolioId}/stocks")
-    public ResponseEntity<List<AssetResponse>> getAssetsByPortfolio(
+    @GetMapping("/{portfolioId}/stocks/{stockId}")
+    public ResponseEntity<AssetResponse> getAssetDetail(
             @PathVariable Long portfolioId,
+            @PathVariable Long stockId,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
         User user = userRepository.findByEmail(userDetails.getUsername())
@@ -37,12 +38,14 @@ public class AssetController {
         GoalAccount goal = goalAccountRepository.findByIdAndUserId(portfolioId, user.getId())
                 .orElseThrow(() -> new AccessDeniedException("이 포트폴리오에 접근할 수 없습니다."));
 
-        List<Asset> assets = assetRepository.findByGoalAccountAndUser(goal, user);
-        List<AssetResponse> responses = assets.stream()
-                .map(AssetResponse::new)
-                .toList();
+        Asset asset = assetRepository.findById(stockId)
+                .orElseThrow(() -> new RuntimeException("종목을 찾을 수 없습니다."));
 
-        return ResponseEntity.ok(responses);
+        if (!asset.getGoalAccount().getId().equals(portfolioId) || !asset.getUser().getId().equals(user.getId())) {
+            throw new AccessDeniedException("이 종목에 접근할 수 없습니다.");
+        }
+
+        return ResponseEntity.ok(new AssetResponse(asset));
     }
 
     @PostMapping("/{portfolioId}/stocks")
