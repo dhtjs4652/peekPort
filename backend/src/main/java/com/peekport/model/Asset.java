@@ -27,6 +27,9 @@ public class Asset {
 
     private String term;              // 투자 기간 (short, mid, long)
 
+    @Column(columnDefinition = "TEXT")
+    private String memo;
+
     private LocalDateTime createdAt;  // 생성일시
     private LocalDateTime updatedAt;  // 수정일시
 
