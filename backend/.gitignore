@@ -43,6 +43,7 @@ build/
 /frontend/.env
 /frontend/.env.local
 /frontend/.eslintcache
+/frontend/
 
 # ──────────────
 # NetBeans (optional)
