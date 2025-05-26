@@ -2,8 +2,10 @@ package com.peekport.controller.user;
 
 import com.peekport.dto.GoalAccountRequest;
 import com.peekport.dto.GoalAccountResponse;
+import com.peekport.dto.PortfolioSummaryResponse;
 import com.peekport.model.User;
 import com.peekport.repository.UserRepository;
+import com.peekport.service.AssetService;
 import com.peekport.service.PortfolioService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +22,7 @@ public class PortfolioController {
 
     private final PortfolioService portfolioService;
     private final UserRepository userRepository;
+    private final AssetService assetService;
 
     @PostMapping
     public ResponseEntity<GoalAccountResponse> createPortfolio(
@@ -43,6 +46,17 @@ public class PortfolioController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         List<GoalAccountResponse> response = portfolioService.getPortfoliosByUser(realUser);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{portfolioId}/summary")
+    public ResponseEntity<PortfolioSummaryResponse> getPortfolioSummary(
+            @PathVariable Long portfolioId,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        PortfolioSummaryResponse response = assetService.calculatePortfolioSummary(
+                portfolioId, userDetails.getUsername()
+        );
         return ResponseEntity.ok(response);
     }
 }

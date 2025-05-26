@@ -1,6 +1,5 @@
 package com.peekport.repository;
 
-import com.peekport.model.Asset;
 import com.peekport.model.GoalAccount;
 import com.peekport.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
