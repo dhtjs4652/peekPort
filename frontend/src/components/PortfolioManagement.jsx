@@ -10,10 +10,13 @@ import {
   TrendingDown,
   BarChart3,
   PieChart,
+  DollarSign,
+  Target,
+  Activity,
 } from 'lucide-react';
 
 const PortfolioManagement = () => {
-  // 상태 관리 (기존과 동일)
+  // 기존 상태 관리
   const [portfolios, setPortfolios] = useState([]);
   const [selectedPortfolio, setSelectedPortfolio] = useState(null);
   const [portfolioName, setPortfolioName] = useState('');
@@ -27,6 +30,10 @@ const PortfolioManagement = () => {
   const [successMessage, setSuccessMessage] = useState(null);
   const [activeTab, setActiveTab] = useState('short');
 
+  // ✅ 새로 추가: 포트폴리오 요약 상태
+  const [portfolioSummary, setPortfolioSummary] = useState(null);
+  const [loadingSummary, setLoadingSummary] = useState(false);
+
   const [newStock, setNewStock] = useState({
     name: '',
     purchasePrice: '',
@@ -34,7 +41,7 @@ const PortfolioManagement = () => {
     term: 'short',
   });
 
-  // 수정 관련 상태 추가
+  // 수정 관련 상태
   const [editingStock, setEditingStock] = useState(null);
   const [editStock, setEditStock] = useState({
     name: '',
@@ -44,8 +51,25 @@ const PortfolioManagement = () => {
     term: 'short',
   });
 
-  // 기존 함수들 (fetchPortfolios, fetchStocksByPortfolioId, handlePortfolioSelect, handlePortfolioSubmit, handleAddStock, handleDeleteStock) 동일
+  // ✅ 새로 추가: 포트폴리오 요약 조회 함수
+  const fetchPortfolioSummary = async (portfolioId) => {
+    if (!portfolioId) return;
 
+    try {
+      setLoadingSummary(true);
+      const response = await authAxios.get(
+        `/api/portfolios/${portfolioId}/summary`
+      );
+      setPortfolioSummary(response.data);
+    } catch (err) {
+      console.error('포트폴리오 요약 조회 실패:', err);
+      setPortfolioSummary(null);
+    } finally {
+      setLoadingSummary(false);
+    }
+  };
+
+  // 기존 함수들
   const fetchPortfolios = useCallback(async () => {
     try {
       setLoadingPortfolios(true);
@@ -87,6 +111,7 @@ const PortfolioManagement = () => {
     }
   };
 
+  // ✅ 수정: 포트폴리오 선택 시 요약 정보도 함께 조회
   const handlePortfolioSelect = (portfolio) => {
     setSelectedPortfolio(portfolio);
     if (infoMessage === '포트폴리오를 선택해주세요') {
@@ -94,8 +119,10 @@ const PortfolioManagement = () => {
     }
     if (portfolio && portfolio.id) {
       fetchStocksByPortfolioId(portfolio.id);
+      fetchPortfolioSummary(portfolio.id); // ✅ 요약 정보 조회 추가
     } else {
       setStocks([]);
+      setPortfolioSummary(null); // ✅ 요약 정보 초기화
     }
   };
 
@@ -121,6 +148,7 @@ const PortfolioManagement = () => {
     }
   };
 
+  // ✅ 수정: 종목 추가/수정 후 요약 정보 갱신
   const handleAddStock = async () => {
     try {
       if (!newStock.name || !newStock.purchasePrice || !newStock.quantity) {
@@ -139,7 +167,7 @@ const PortfolioManagement = () => {
           quantity: Number(newStock.quantity),
           term: newStock.term,
           currentPrice: Number(newStock.purchasePrice),
-          category: null, //  추가
+          category: null,
           memo: null,
         }
       );
@@ -152,6 +180,7 @@ const PortfolioManagement = () => {
         term: activeTab,
       });
       fetchStocksByPortfolioId(selectedPortfolio.id);
+      fetchPortfolioSummary(selectedPortfolio.id); // ✅ 요약 정보 갱신
     } catch {
       setError('종목 추가에 실패했습니다.');
     }
@@ -171,12 +200,12 @@ const PortfolioManagement = () => {
       );
       setSuccessMessage('종목이 삭제되었습니다.');
       setTimeout(() => setSuccessMessage(null), 3000);
+      fetchPortfolioSummary(selectedPortfolio.id); // ✅ 요약 정보 갱신
     } catch {
       setError('종목 삭제에 실패했습니다.');
     }
   };
 
-  // 수정 기능 추가
   const handleEditStock = (stock) => {
     setEditingStock(stock.id);
     setEditStock({
@@ -213,7 +242,6 @@ const PortfolioManagement = () => {
       setSuccessMessage('종목이 수정되었습니다.');
       setTimeout(() => setSuccessMessage(null), 3000);
 
-      // 수정 모드 종료
       setEditingStock(null);
       setEditStock({
         name: '',
@@ -223,8 +251,8 @@ const PortfolioManagement = () => {
         term: 'short',
       });
 
-      // 종목 목록 갱신
       fetchStocksByPortfolioId(selectedPortfolio.id);
+      fetchPortfolioSummary(selectedPortfolio.id); // ✅ 요약 정보 갱신
     } catch {
       setError('종목 수정에 실패했습니다.');
     }
@@ -245,6 +273,7 @@ const PortfolioManagement = () => {
     fetchPortfolios();
   }, [fetchPortfolios]);
 
+  // 기존 계산 함수들
   const termTabs = ['short', 'mid', 'long'];
   const termLabels = {
     short: '단기',
@@ -332,7 +361,131 @@ const PortfolioManagement = () => {
         </div>
       )}
 
-      {/* 포트폴리오 선택 */}
+      {/* ✅ 새로 추가: 포트폴리오 요약 대시보드 */}
+      {selectedPortfolio && (
+        <div className="bg-white rounded-2xl p-6 shadow-lg mb-8">
+          <div className="flex items-center mb-6">
+            <Activity className="h-6 w-6 text-blue-600 mr-2" />
+            <h2 className="text-xl font-bold text-gray-900">
+              {selectedPortfolio.name} 요약
+            </h2>
+          </div>
+
+          {loadingSummary ? (
+            <div className="flex justify-center items-center h-32">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
+            </div>
+          ) : portfolioSummary ? (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+              {/* 총 투자금 */}
+              <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-6 text-center">
+                <div className="flex items-center justify-center mb-3">
+                  <DollarSign className="h-8 w-8 text-blue-600" />
+                </div>
+                <p className="text-sm text-blue-600 font-medium mb-2">
+                  총 투자금
+                </p>
+                <p className="text-2xl font-bold text-blue-700">
+                  {Number(portfolioSummary.totalInvestment).toLocaleString()}원
+                </p>
+              </div>
+
+              {/* 평가금액 */}
+              <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-xl p-6 text-center">
+                <div className="flex items-center justify-center mb-3">
+                  <Target className="h-8 w-8 text-green-600" />
+                </div>
+                <p className="text-sm text-green-600 font-medium mb-2">
+                  평가금액
+                </p>
+                <p className="text-2xl font-bold text-green-700">
+                  {Number(portfolioSummary.totalValue).toLocaleString()}원
+                </p>
+              </div>
+
+              {/* 손익 */}
+              <div
+                className={`bg-gradient-to-r rounded-xl p-6 text-center ${
+                  Number(portfolioSummary.totalProfitLoss) >= 0
+                    ? 'from-red-50 to-red-100'
+                    : 'from-blue-50 to-blue-100'
+                }`}
+              >
+                <div className="flex items-center justify-center mb-3">
+                  {Number(portfolioSummary.totalProfitLoss) >= 0 ? (
+                    <TrendingUp className="h-8 w-8 text-red-600" />
+                  ) : (
+                    <TrendingDown className="h-8 w-8 text-blue-600" />
+                  )}
+                </div>
+                <p
+                  className={`text-sm font-medium mb-2 ${
+                    Number(portfolioSummary.totalProfitLoss) >= 0
+                      ? 'text-red-600'
+                      : 'text-blue-600'
+                  }`}
+                >
+                  손익
+                </p>
+                <p
+                  className={`text-2xl font-bold ${
+                    Number(portfolioSummary.totalProfitLoss) >= 0
+                      ? 'text-red-600'
+                      : 'text-blue-600'
+                  }`}
+                >
+                  {Number(portfolioSummary.totalProfitLoss) >= 0 ? '+' : ''}
+                  {Number(portfolioSummary.totalProfitLoss).toLocaleString()}원
+                </p>
+              </div>
+
+              {/* 수익률 */}
+              <div
+                className={`bg-gradient-to-r rounded-xl p-6 text-center ${
+                  Number(portfolioSummary.totalReturnRate) >= 0
+                    ? 'from-red-50 to-red-100'
+                    : 'from-blue-50 to-blue-100'
+                }`}
+              >
+                <div className="flex items-center justify-center mb-3">
+                  <BarChart3
+                    className={`h-8 w-8 ${
+                      Number(portfolioSummary.totalReturnRate) >= 0
+                        ? 'text-red-600'
+                        : 'text-blue-600'
+                    }`}
+                  />
+                </div>
+                <p
+                  className={`text-sm font-medium mb-2 ${
+                    Number(portfolioSummary.totalReturnRate) >= 0
+                      ? 'text-red-600'
+                      : 'text-blue-600'
+                  }`}
+                >
+                  수익률
+                </p>
+                <p
+                  className={`text-2xl font-bold ${
+                    Number(portfolioSummary.totalReturnRate) >= 0
+                      ? 'text-red-600'
+                      : 'text-blue-600'
+                  }`}
+                >
+                  {Number(portfolioSummary.totalReturnRate) >= 0 ? '+' : ''}
+                  {Number(portfolioSummary.totalReturnRate).toFixed(2)}%
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <p>포트폴리오 요약 정보를 불러올 수 없습니다.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 기존 포트폴리오 선택 섹션 */}
       <div className="bg-white rounded-2xl p-6 shadow-lg mb-8">
         <div className="flex items-center mb-4">
           <PieChart className="h-6 w-6 text-blue-600 mr-2" />
