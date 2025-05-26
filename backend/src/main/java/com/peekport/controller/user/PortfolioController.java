@@ -3,6 +3,7 @@ package com.peekport.controller.user;
 import com.peekport.dto.GoalAccountRequest;
 import com.peekport.dto.GoalAccountResponse;
 import com.peekport.dto.PortfolioSummaryResponse;
+import com.peekport.dto.UpdateCashRequest;
 import com.peekport.model.User;
 import com.peekport.repository.UserRepository;
 import com.peekport.service.AssetService;
@@ -13,6 +14,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.file.AccessDeniedException;
 import java.util.List;
 
 @RestController
@@ -59,4 +61,18 @@ public class PortfolioController {
         );
         return ResponseEntity.ok(response);
     }
+
+    @PutMapping("/{portfolioId}/cash")
+    public ResponseEntity<GoalAccountResponse> updateCash(
+            @PathVariable Long portfolioId,
+            @RequestBody UpdateCashRequest request,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) throws AccessDeniedException {
+        User user = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        GoalAccountResponse response = portfolioService.updateCash(portfolioId, request.getCash(), user);
+        return ResponseEntity.ok(response);
+    }
+
 }

@@ -8,6 +8,7 @@ import com.peekport.repository.GoalAccountRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.nio.file.AccessDeniedException;
 import java.util.List;
 
 @Service
@@ -61,4 +62,21 @@ public class PortfolioService {
                 ))
                 .toList();
     }
+
+    public GoalAccountResponse updateCash(Long portfolioId, BigDecimal cash, User user) throws AccessDeniedException {
+        GoalAccount goal = goalAccountRepository.findByIdAndUserId(portfolioId, user.getId())
+                .orElseThrow(() -> new AccessDeniedException("해당 포트폴리오에 접근할 수 없습니다."));
+
+        goal.setCash(cash);
+        GoalAccount updated = goalAccountRepository.save(goal);
+
+        return new GoalAccountResponse(
+                updated.getId(),
+                updated.getName(),
+                updated.getTotalAmount(),
+                updated.getTargetAmount(),
+                updated.getCash()
+        );
+    }
+
 }
