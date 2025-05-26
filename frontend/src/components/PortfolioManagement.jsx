@@ -13,6 +13,8 @@ import {
   DollarSign,
   Target,
   Activity,
+  Wallet,
+  Save,
 } from 'lucide-react';
 
 const PortfolioManagement = () => {
@@ -22,6 +24,7 @@ const PortfolioManagement = () => {
   const [portfolioName, setPortfolioName] = useState('');
   const [totalAmount, setTotalAmount] = useState('');
   const [targetAmount, setTargetAmount] = useState('');
+  const [cash, setCash] = useState(''); // ✅ 새로 추가: 현금 입력 상태
   const [stocks, setStocks] = useState([]);
   const [loadingPortfolios, setLoadingPortfolios] = useState(false);
   const [loadingStocks, setLoadingStocks] = useState(false);
@@ -30,9 +33,14 @@ const PortfolioManagement = () => {
   const [successMessage, setSuccessMessage] = useState(null);
   const [activeTab, setActiveTab] = useState('short');
 
-  // ✅ 새로 추가: 포트폴리오 요약 상태
+  // 포트폴리오 요약 상태
   const [portfolioSummary, setPortfolioSummary] = useState(null);
   const [loadingSummary, setLoadingSummary] = useState(false);
+
+  // ✅ 새로 추가: 현금 수정 관련 상태
+  const [editingCash, setEditingCash] = useState(null); // 수정 중인 포트폴리오 ID
+  const [editCashValue, setEditCashValue] = useState(''); // 수정할 현금 값
+  const [loadingCashUpdate, setLoadingCashUpdate] = useState(false);
 
   const [newStock, setNewStock] = useState({
     name: '',
@@ -51,7 +59,47 @@ const PortfolioManagement = () => {
     term: 'short',
   });
 
-  // ✅ 새로 추가: 포트폴리오 요약 조회 함수
+  // ✅ 새로 추가: 현금 수정 함수
+  const handleCashEdit = (portfolio) => {
+    setEditingCash(portfolio.id);
+    setEditCashValue(portfolio.cash || 0);
+  };
+
+  const handleCashUpdate = async (portfolioId) => {
+    try {
+      setLoadingCashUpdate(true);
+      await authAxios.put(`/api/portfolios/${portfolioId}/cash`, {
+        cash: Number(editCashValue),
+      });
+
+      setSuccessMessage('현금이 업데이트되었습니다.');
+      setTimeout(() => setSuccessMessage(null), 3000);
+
+      // 포트폴리오 목록 갱신
+      fetchPortfolios();
+
+      // 선택된 포트폴리오 요약 정보 갱신
+      if (selectedPortfolio && selectedPortfolio.id === portfolioId) {
+        fetchPortfolioSummary(portfolioId);
+      }
+
+      // 수정 모드 종료
+      setEditingCash(null);
+      setEditCashValue('');
+    } catch (err) {
+      console.error('현금 업데이트 실패:', err);
+      setError('현금 업데이트에 실패했습니다.');
+    } finally {
+      setLoadingCashUpdate(false);
+    }
+  };
+
+  const handleCashCancel = () => {
+    setEditingCash(null);
+    setEditCashValue('');
+  };
+
+  // 포트폴리오 요약 조회 함수
   const fetchPortfolioSummary = async (portfolioId) => {
     if (!portfolioId) return;
 
@@ -111,7 +159,7 @@ const PortfolioManagement = () => {
     }
   };
 
-  // ✅ 수정: 포트폴리오 선택 시 요약 정보도 함께 조회
+  // 포트폴리오 선택 시 요약 정보도 함께 조회
   const handlePortfolioSelect = (portfolio) => {
     setSelectedPortfolio(portfolio);
     if (infoMessage === '포트폴리오를 선택해주세요') {
@@ -119,13 +167,14 @@ const PortfolioManagement = () => {
     }
     if (portfolio && portfolio.id) {
       fetchStocksByPortfolioId(portfolio.id);
-      fetchPortfolioSummary(portfolio.id); // ✅ 요약 정보 조회 추가
+      fetchPortfolioSummary(portfolio.id);
     } else {
       setStocks([]);
-      setPortfolioSummary(null); // ✅ 요약 정보 초기화
+      setPortfolioSummary(null);
     }
   };
 
+  // ✅ 수정: 현금 필드 추가
   const handlePortfolioSubmit = async () => {
     try {
       if (!portfolioName) {
@@ -136,19 +185,21 @@ const PortfolioManagement = () => {
         name: portfolioName,
         totalAmount: totalAmount ? Number(totalAmount) : 0,
         targetAmount: targetAmount ? Number(targetAmount) : 0,
+        cash: cash ? Number(cash) : 0, // ✅ 현금 필드 추가
       });
       setSuccessMessage('포트폴리오가 등록되었습니다.');
       setTimeout(() => setSuccessMessage(null), 3000);
       setPortfolioName('');
       setTotalAmount('');
       setTargetAmount('');
+      setCash(''); // ✅ 현금 필드 초기화
       fetchPortfolios();
     } catch {
       setError('포트폴리오 등록에 실패했습니다.');
     }
   };
 
-  // ✅ 수정: 종목 추가/수정 후 요약 정보 갱신
+  // 종목 추가/수정 후 요약 정보 갱신
   const handleAddStock = async () => {
     try {
       if (!newStock.name || !newStock.purchasePrice || !newStock.quantity) {
@@ -180,7 +231,7 @@ const PortfolioManagement = () => {
         term: activeTab,
       });
       fetchStocksByPortfolioId(selectedPortfolio.id);
-      fetchPortfolioSummary(selectedPortfolio.id); // ✅ 요약 정보 갱신
+      fetchPortfolioSummary(selectedPortfolio.id);
     } catch {
       setError('종목 추가에 실패했습니다.');
     }
@@ -200,7 +251,7 @@ const PortfolioManagement = () => {
       );
       setSuccessMessage('종목이 삭제되었습니다.');
       setTimeout(() => setSuccessMessage(null), 3000);
-      fetchPortfolioSummary(selectedPortfolio.id); // ✅ 요약 정보 갱신
+      fetchPortfolioSummary(selectedPortfolio.id);
     } catch {
       setError('종목 삭제에 실패했습니다.');
     }
@@ -252,7 +303,7 @@ const PortfolioManagement = () => {
       });
 
       fetchStocksByPortfolioId(selectedPortfolio.id);
-      fetchPortfolioSummary(selectedPortfolio.id); // ✅ 요약 정보 갱신
+      fetchPortfolioSummary(selectedPortfolio.id);
     } catch {
       setError('종목 수정에 실패했습니다.');
     }
@@ -361,7 +412,7 @@ const PortfolioManagement = () => {
         </div>
       )}
 
-      {/* ✅ 새로 추가: 포트폴리오 요약 대시보드 */}
+      {/* 포트폴리오 요약 대시보드 */}
       {selectedPortfolio && (
         <div className="bg-white rounded-2xl p-6 shadow-lg mb-8">
           <div className="flex items-center mb-6">
@@ -485,7 +536,7 @@ const PortfolioManagement = () => {
         </div>
       )}
 
-      {/* 기존 포트폴리오 선택 섹션 */}
+      {/* 포트폴리오 선택 */}
       <div className="bg-white rounded-2xl p-6 shadow-lg mb-8">
         <div className="flex items-center mb-4">
           <PieChart className="h-6 w-6 text-blue-600 mr-2" />
@@ -507,7 +558,7 @@ const PortfolioManagement = () => {
               <button
                 key={portfolio.id}
                 onClick={() => handlePortfolioSelect(portfolio)}
-                className={`p-4 rounded-xl border-2 transition-all duration-300 text-left ${
+                className={`p-4 rounded-xl border-2 transition-all duration-300 text-left relative ${
                   selectedPortfolio?.id === portfolio.id
                     ? 'border-blue-500 bg-blue-50 shadow-md transform scale-105'
                     : 'border-gray-200 bg-white hover:border-blue-300 hover:shadow-md'
@@ -516,11 +567,66 @@ const PortfolioManagement = () => {
                 <h3 className="font-semibold text-gray-900 mb-2">
                   {portfolio.name || '이름 없음'}
                 </h3>
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-gray-600 space-y-1">
                   <p>
                     목표: {(portfolio.targetAmount || 0).toLocaleString()}원
                   </p>
                   <p>현재: {(portfolio.totalAmount || 0).toLocaleString()}원</p>
+                  {/* ✅ 새로 추가: 현금 표시 및 수정 기능 */}
+                  <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-200">
+                    <div className="flex items-center">
+                      <Wallet className="h-4 w-4 text-green-600 mr-1" />
+                      {editingCash === portfolio.id ? (
+                        <div className="flex items-center space-x-1">
+                          <input
+                            type="number"
+                            value={editCashValue}
+                            onChange={(e) => setEditCashValue(e.target.value)}
+                            className="w-20 px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-400"
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCashUpdate(portfolio.id);
+                            }}
+                            disabled={loadingCashUpdate}
+                            className="text-green-600 hover:text-green-700 p-1"
+                          >
+                            {loadingCashUpdate ? (
+                              <div className="w-3 h-3 border border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                            ) : (
+                              <Save className="h-3 w-3" />
+                            )}
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCashCancel();
+                            }}
+                            className="text-gray-400 hover:text-gray-600 p-1"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <span className="text-green-600 font-medium">
+                            {(portfolio.cash || 0).toLocaleString()}원
+                          </span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCashEdit(portfolio);
+                            }}
+                            className="ml-2 text-gray-400 hover:text-gray-600"
+                          >
+                            <Edit2 className="h-3 w-3" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </button>
             ))}
@@ -528,7 +634,7 @@ const PortfolioManagement = () => {
         )}
       </div>
 
-      {/* 포트폴리오 등록 */}
+      {/* ✅ 수정: 포트폴리오 등록에 현금 필드 추가 */}
       <div className="bg-white rounded-2xl p-6 shadow-lg mb-8">
         <div className="flex items-center mb-4">
           <Plus className="h-6 w-6 text-green-600 mr-2" />
@@ -536,7 +642,7 @@ const PortfolioManagement = () => {
             새 포트폴리오 등록
           </h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           <input
             type="text"
             value={portfolioName}
@@ -558,6 +664,14 @@ const PortfolioManagement = () => {
             placeholder="목표 자산 (원)"
             className="p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
           />
+          {/* ✅ 새로 추가: 현금 입력 필드 */}
+          <input
+            type="number"
+            value={cash}
+            onChange={(e) => setCash(e.target.value)}
+            placeholder="보유 현금 (원)"
+            className="p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+          />
         </div>
         <button
           onClick={handlePortfolioSubmit}
@@ -568,6 +682,7 @@ const PortfolioManagement = () => {
         </button>
       </div>
 
+      {/* 나머지 기존 섹션들 (종목 추가, 종목 관리) - 기존 코드 유지 */}
       {/* 종목 추가 */}
       <div className="bg-white rounded-2xl p-6 shadow-lg mb-8">
         <div className="flex items-center mb-4">
