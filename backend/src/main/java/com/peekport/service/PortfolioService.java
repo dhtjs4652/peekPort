@@ -7,6 +7,7 @@ import com.peekport.model.User;
 import com.peekport.repository.GoalAccountRepository;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Service
@@ -35,6 +36,7 @@ public class PortfolioService {
         portfolio.setName(request.getName());
         portfolio.setTotalAmount(request.getTotalAmount());
         portfolio.setTargetAmount(request.getTargetAmount());
+        portfolio.setCash(request.getCash() != null ? request.getCash() : BigDecimal.ZERO);
 
         GoalAccount saved = goalAccountRepository.save(portfolio);
 
@@ -42,7 +44,8 @@ public class PortfolioService {
                 saved.getId(),
                 saved.getName(),
                 saved.getTotalAmount(),
-                saved.getTargetAmount()
+                saved.getTargetAmount(),
+                saved.getCash()
         );
     }
 
@@ -53,7 +56,8 @@ public class PortfolioService {
                         p.getId(),
                         p.getName(),
                         p.getTotalAmount(),
-                        p.getTargetAmount()
+                        p.getTargetAmount(),
+                        p.getCash()
                 ))
                 .toList();
     }
