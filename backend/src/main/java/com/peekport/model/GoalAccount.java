@@ -33,6 +33,10 @@ public class GoalAccount {
     @Column(nullable = false)
     private BigDecimal cash = BigDecimal.ZERO;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private PortfolioType portfolioType = PortfolioType.BALANCED; // 기본값 설정
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();

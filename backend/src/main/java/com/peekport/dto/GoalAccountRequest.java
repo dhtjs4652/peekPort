@@ -1,5 +1,6 @@
 package com.peekport.dto;
 
+import com.peekport.model.PortfolioType;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -12,5 +13,5 @@ public class GoalAccountRequest {
     private Long totalAmount;
     private Long targetAmount;
     private BigDecimal cash;
-
+    private PortfolioType portfolioType;
 }

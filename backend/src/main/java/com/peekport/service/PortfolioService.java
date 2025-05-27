@@ -3,6 +3,7 @@ package com.peekport.service;
 import com.peekport.dto.GoalAccountRequest;
 import com.peekport.dto.GoalAccountResponse;
 import com.peekport.model.GoalAccount;
+import com.peekport.model.PortfolioType;
 import com.peekport.model.User;
 import com.peekport.repository.GoalAccountRepository;
 import org.springframework.stereotype.Service;
@@ -38,6 +39,9 @@ public class PortfolioService {
         portfolio.setTotalAmount(request.getTotalAmount());
         portfolio.setTargetAmount(request.getTargetAmount());
         portfolio.setCash(request.getCash() != null ? request.getCash() : BigDecimal.ZERO);
+        portfolio.setPortfolioType(
+                request.getPortfolioType() != null ? request.getPortfolioType() : PortfolioType.BALANCED
+        );
 
         GoalAccount saved = goalAccountRepository.save(portfolio);
 
@@ -46,7 +50,8 @@ public class PortfolioService {
                 saved.getName(),
                 saved.getTotalAmount(),
                 saved.getTargetAmount(),
-                saved.getCash()
+                saved.getCash(),
+                saved.getPortfolioType()
         );
     }
 
@@ -58,7 +63,8 @@ public class PortfolioService {
                         p.getName(),
                         p.getTotalAmount(),
                         p.getTargetAmount(),
-                        p.getCash()
+                        p.getCash(),
+                        p.getPortfolioType()
                 ))
                 .toList();
     }
@@ -75,7 +81,8 @@ public class PortfolioService {
                 updated.getName(),
                 updated.getTotalAmount(),
                 updated.getTargetAmount(),
-                updated.getCash()
+                updated.getCash(),
+                updated.getPortfolioType()
         );
     }
 
