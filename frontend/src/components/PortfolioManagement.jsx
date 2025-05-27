@@ -15,6 +15,9 @@ import {
   Activity,
   Wallet,
   Save,
+  Shield,
+  BarChart,
+  Zap,
 } from 'lucide-react';
 
 const PortfolioManagement = () => {
@@ -24,7 +27,8 @@ const PortfolioManagement = () => {
   const [portfolioName, setPortfolioName] = useState('');
   const [totalAmount, setTotalAmount] = useState('');
   const [targetAmount, setTargetAmount] = useState('');
-  const [cash, setCash] = useState(''); // ✅ 새로 추가: 현금 입력 상태
+  const [cash, setCash] = useState('');
+  const [portfolioType, setPortfolioType] = useState('BALANCED'); // ✅ 새로 추가: 투자 성향 상태
   const [stocks, setStocks] = useState([]);
   const [loadingPortfolios, setLoadingPortfolios] = useState(false);
   const [loadingStocks, setLoadingStocks] = useState(false);
@@ -37,9 +41,9 @@ const PortfolioManagement = () => {
   const [portfolioSummary, setPortfolioSummary] = useState(null);
   const [loadingSummary, setLoadingSummary] = useState(false);
 
-  // ✅ 새로 추가: 현금 수정 관련 상태
-  const [editingCash, setEditingCash] = useState(null); // 수정 중인 포트폴리오 ID
-  const [editCashValue, setEditCashValue] = useState(''); // 수정할 현금 값
+  // 현금 수정 관련 상태
+  const [editingCash, setEditingCash] = useState(null);
+  const [editCashValue, setEditCashValue] = useState('');
   const [loadingCashUpdate, setLoadingCashUpdate] = useState(false);
 
   const [newStock, setNewStock] = useState({
@@ -59,7 +63,44 @@ const PortfolioManagement = () => {
     term: 'short',
   });
 
-  // ✅ 새로 추가: 현금 수정 함수
+  // ✅ 새로 추가: 투자 성향 옵션 정의
+  const portfolioTypeOptions = [
+    {
+      value: 'CONSERVATIVE',
+      label: '보수형',
+      description: '안정적인 수익을 추구하는 투자',
+      icon: Shield,
+      bgColor: 'bg-blue-50',
+      textColor: 'text-blue-600',
+      borderColor: 'border-blue-500',
+    },
+    {
+      value: 'BALANCED',
+      label: '균형형',
+      description: '안정성과 수익성의 균형을 추구',
+      icon: BarChart,
+      bgColor: 'bg-green-50',
+      textColor: 'text-green-600',
+      borderColor: 'border-green-500',
+    },
+    {
+      value: 'AGGRESSIVE',
+      label: '공격형',
+      description: '높은 수익률을 목표로 하는 투자',
+      icon: Zap,
+      bgColor: 'bg-red-50',
+      textColor: 'text-red-600',
+      borderColor: 'border-red-500',
+    },
+  ];
+
+  // ✅ 투자 성향별 라벨 매핑
+  const getPortfolioTypeLabel = (type) => {
+    const option = portfolioTypeOptions.find((opt) => opt.value === type);
+    return option ? option.label : type;
+  };
+
+  // 현금 수정 함수
   const handleCashEdit = (portfolio) => {
     setEditingCash(portfolio.id);
     setEditCashValue(portfolio.cash || 0);
@@ -75,15 +116,12 @@ const PortfolioManagement = () => {
       setSuccessMessage('현금이 업데이트되었습니다.');
       setTimeout(() => setSuccessMessage(null), 3000);
 
-      // 포트폴리오 목록 갱신
       fetchPortfolios();
 
-      // 선택된 포트폴리오 요약 정보 갱신
       if (selectedPortfolio && selectedPortfolio.id === portfolioId) {
         fetchPortfolioSummary(portfolioId);
       }
 
-      // 수정 모드 종료
       setEditingCash(null);
       setEditCashValue('');
     } catch (err) {
@@ -174,7 +212,7 @@ const PortfolioManagement = () => {
     }
   };
 
-  // ✅ 수정: 현금 필드 추가
+  // ✅ 수정: portfolioType 필드 추가
   const handlePortfolioSubmit = async () => {
     try {
       if (!portfolioName) {
@@ -185,14 +223,16 @@ const PortfolioManagement = () => {
         name: portfolioName,
         totalAmount: totalAmount ? Number(totalAmount) : 0,
         targetAmount: targetAmount ? Number(targetAmount) : 0,
-        cash: cash ? Number(cash) : 0, // ✅ 현금 필드 추가
+        cash: cash ? Number(cash) : 0,
+        portfolioType: portfolioType, // ✅ 투자 성향 필드 추가
       });
       setSuccessMessage('포트폴리오가 등록되었습니다.');
       setTimeout(() => setSuccessMessage(null), 3000);
       setPortfolioName('');
       setTotalAmount('');
       setTargetAmount('');
-      setCash(''); // ✅ 현금 필드 초기화
+      setCash('');
+      setPortfolioType('BALANCED'); // ✅ 투자 성향 초기화
       fetchPortfolios();
     } catch {
       setError('포트폴리오 등록에 실패했습니다.');
@@ -420,6 +460,36 @@ const PortfolioManagement = () => {
             <h2 className="text-xl font-bold text-gray-900">
               {selectedPortfolio.name} 요약
             </h2>
+            {/* ✅ 투자 성향 표시 */}
+            <div className="ml-auto flex items-center">
+              {(() => {
+                const typeOption = portfolioTypeOptions.find(
+                  (opt) => opt.value === selectedPortfolio.portfolioType
+                );
+                const IconComponent = typeOption?.icon || BarChart;
+                return (
+                  <div
+                    className={`flex items-center px-3 py-1 rounded-full ${
+                      typeOption?.bgColor || 'bg-gray-50'
+                    }`}
+                  >
+                    <IconComponent
+                      className={`h-4 w-4 mr-1 ${
+                        typeOption?.textColor || 'text-gray-600'
+                      }`}
+                    />
+                    <span
+                      className={`text-sm font-medium ${
+                        typeOption?.textColor || 'text-gray-600'
+                      }`}
+                    >
+                      투자 성향:{' '}
+                      {getPortfolioTypeLabel(selectedPortfolio.portfolioType)}
+                    </span>
+                  </div>
+                );
+              })()}
+            </div>
           </div>
 
           {loadingSummary ? (
@@ -572,7 +642,36 @@ const PortfolioManagement = () => {
                     목표: {(portfolio.targetAmount || 0).toLocaleString()}원
                   </p>
                   <p>현재: {(portfolio.totalAmount || 0).toLocaleString()}원</p>
-                  {/* ✅ 새로 추가: 현금 표시 및 수정 기능 */}
+                  {/* ✅ 투자 성향 표시 */}
+                  <div className="flex items-center mt-2 pt-2 border-t border-gray-200">
+                    {(() => {
+                      const typeOption = portfolioTypeOptions.find(
+                        (opt) => opt.value === portfolio.portfolioType
+                      );
+                      const IconComponent = typeOption?.icon || BarChart;
+                      return (
+                        <div
+                          className={`flex items-center px-2 py-1 rounded ${
+                            typeOption?.bgColor || 'bg-gray-50'
+                          }`}
+                        >
+                          <IconComponent
+                            className={`h-3 w-3 mr-1 ${
+                              typeOption?.textColor || 'text-gray-600'
+                            }`}
+                          />
+                          <span
+                            className={`text-xs ${
+                              typeOption?.textColor || 'text-gray-600'
+                            }`}
+                          >
+                            {getPortfolioTypeLabel(portfolio.portfolioType)}
+                          </span>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                  {/* 현금 표시 및 수정 기능 */}
                   <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-200">
                     <div className="flex items-center">
                       <Wallet className="h-4 w-4 text-green-600 mr-1" />
@@ -634,7 +733,7 @@ const PortfolioManagement = () => {
         )}
       </div>
 
-      {/* ✅ 수정: 포트폴리오 등록에 현금 필드 추가 */}
+      {/* ✅ 수정: 포트폴리오 등록에 투자 성향 선택 UI 추가 */}
       <div className="bg-white rounded-2xl p-6 shadow-lg mb-8">
         <div className="flex items-center mb-4">
           <Plus className="h-6 w-6 text-green-600 mr-2" />
@@ -642,47 +741,102 @@ const PortfolioManagement = () => {
             새 포트폴리오 등록
           </h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-          <input
-            type="text"
-            value={portfolioName}
-            onChange={(e) => setPortfolioName(e.target.value)}
-            placeholder="포트폴리오 이름"
-            className="p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
-          />
-          <input
-            type="number"
-            value={totalAmount}
-            onChange={(e) => setTotalAmount(e.target.value)}
-            placeholder="현재 자산 (원)"
-            className="p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
-          />
-          <input
-            type="number"
-            value={targetAmount}
-            onChange={(e) => setTargetAmount(e.target.value)}
-            placeholder="목표 자산 (원)"
-            className="p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
-          />
-          {/* ✅ 새로 추가: 현금 입력 필드 */}
-          <input
-            type="number"
-            value={cash}
-            onChange={(e) => setCash(e.target.value)}
-            placeholder="보유 현금 (원)"
-            className="p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
-          />
+        <div className="space-y-6">
+          {/* 기본 정보 입력 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <input
+              type="text"
+              value={portfolioName}
+              onChange={(e) => setPortfolioName(e.target.value)}
+              placeholder="포트폴리오 이름"
+              className="p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+            />
+            <input
+              type="number"
+              value={totalAmount}
+              onChange={(e) => setTotalAmount(e.target.value)}
+              placeholder="현재 자산 (원)"
+              className="p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+            />
+            <input
+              type="number"
+              value={targetAmount}
+              onChange={(e) => setTargetAmount(e.target.value)}
+              placeholder="목표 자산 (원)"
+              className="p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+            />
+            <input
+              type="number"
+              value={cash}
+              onChange={(e) => setCash(e.target.value)}
+              placeholder="보유 현금 (원)"
+              className="p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+            />
+          </div>
+
+          {/* ✅ 투자 성향 선택 UI */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              투자 성향 선택
+            </label>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {portfolioTypeOptions.map((option) => {
+                const IconComponent = option.icon;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setPortfolioType(option.value)}
+                    className={`p-4 rounded-xl border-2 transition-all duration-300 text-left ${
+                      portfolioType === option.value
+                        ? `${option.bgColor} ${option.borderColor} shadow-lg transform scale-105`
+                        : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-md'
+                    }`}
+                  >
+                    <div className="flex items-center mb-2">
+                      <IconComponent
+                        className={`h-5 w-5 mr-2 ${
+                          portfolioType === option.value
+                            ? option.textColor
+                            : 'text-gray-400'
+                        }`}
+                      />
+                      <span
+                        className={`font-semibold ${
+                          portfolioType === option.value
+                            ? option.textColor
+                            : 'text-gray-700'
+                        }`}
+                      >
+                        {option.label}
+                      </span>
+                    </div>
+                    <p
+                      className={`text-sm ${
+                        portfolioType === option.value
+                          ? option.textColor
+                          : 'text-gray-500'
+                      }`}
+                    >
+                      {option.description}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 등록 버튼 */}
+          <button
+            onClick={handlePortfolioSubmit}
+            className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-3 rounded-xl hover:from-green-600 hover:to-green-700 transition-all duration-300 flex items-center justify-center font-semibold shadow-lg"
+          >
+            <Plus className="h-5 w-5 mr-2" />
+            포트폴리오 등록
+          </button>
         </div>
-        <button
-          onClick={handlePortfolioSubmit}
-          className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-3 rounded-xl hover:from-green-600 hover:to-green-700 transition-all duration-300 flex items-center justify-center font-semibold shadow-lg"
-        >
-          <Plus className="h-5 w-5 mr-2" />
-          포트폴리오 등록
-        </button>
       </div>
 
-      {/* 나머지 기존 섹션들 (종목 추가, 종목 관리) - 기존 코드 유지 */}
       {/* 종목 추가 */}
       <div className="bg-white rounded-2xl p-6 shadow-lg mb-8">
         <div className="flex items-center mb-4">
