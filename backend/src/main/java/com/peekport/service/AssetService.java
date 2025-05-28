@@ -1,5 +1,7 @@
 package com.peekport.service;
 
+import com.peekport.dto.AssetRequest;
+import com.peekport.dto.AssetResponse;
 import com.peekport.dto.PortfolioSummaryResponse;
 import com.peekport.model.Asset;
 import com.peekport.model.GoalAccount;
@@ -7,6 +9,7 @@ import com.peekport.model.User;
 import com.peekport.repository.AssetRepository;
 import com.peekport.repository.GoalAccountRepository;
 import com.peekport.repository.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
@@ -63,6 +66,29 @@ public class AssetService {
                 profitLoss,
                 returnRate
         );
+    }
+
+    public AssetResponse updateAsset(Long portfolioId, Long stockId, AssetRequest request, User user) {
+        Asset asset = assetRepository.findById(stockId)
+                .orElseThrow(() -> new EntityNotFoundException("해당 종목을 찾을 수 없습니다"));
+
+        if (!asset.getGoalAccount().getUser().getId().equals(user.getId())) {
+            throw new AccessDeniedException("사용자 권한이 없습니다.");
+        }
+
+        asset.setName(request.getName());
+        asset.setQuantity(request.getQuantity());
+        asset.setPurchasePrice(request.getPurchasePrice());
+        asset.setCurrentPrice(request.getCurrentPrice());
+        asset.setCategory(request.getCategory());
+        asset.setMemo(request.getMemo());
+
+        if (request.getTargetRatio() != null) {
+            asset.setTargetRatio(request.getTargetRatio());
+        }
+
+        Asset updated = assetRepository.save(asset);
+        return new AssetResponse(updated);
     }
 
 }

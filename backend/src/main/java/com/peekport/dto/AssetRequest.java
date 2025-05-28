@@ -15,5 +15,5 @@ public class AssetRequest {
     private String term;
     private String category;
     private String memo;
-
+    private BigDecimal targetRatio;
 }

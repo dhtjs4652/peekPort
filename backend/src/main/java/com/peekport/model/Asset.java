@@ -41,6 +41,10 @@ public class Asset {
     @JoinColumn(name = "goal_account_id")
     private GoalAccount goalAccount;  // 해당 종목이 소속된 포트폴리오
 
+    // 목표 비중
+    @Column(precision = 5, scale = 2)
+    private BigDecimal targetRatio;  // 단위: %, 예: 15.50
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

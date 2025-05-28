@@ -22,11 +22,12 @@ public class AssetResponse {
     private BigDecimal profitLoss;
     private Double returnRate;
 
-    // ✅ 추가된 필드
     private BigDecimal avgPrice;
     private String memo;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    private BigDecimal targetRatio;
 
     public AssetResponse(Asset asset) {
         this.id = asset.getId();
