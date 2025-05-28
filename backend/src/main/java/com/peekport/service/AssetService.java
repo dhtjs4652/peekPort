@@ -72,6 +72,10 @@ public class AssetService {
         Asset asset = assetRepository.findById(stockId)
                 .orElseThrow(() -> new EntityNotFoundException("해당 종목을 찾을 수 없습니다"));
 
+        if (!asset.getGoalAccount().getId().equals(portfolioId)) {
+            throw new AccessDeniedException("해당 종목이 요청한 포트폴리오에 속하지 않습니다.");
+        }
+
         if (!asset.getGoalAccount().getUser().getId().equals(user.getId())) {
             throw new AccessDeniedException("사용자 권한이 없습니다.");
         }
