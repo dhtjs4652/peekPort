@@ -52,6 +52,8 @@ public class AssetService {
         }
 
         BigDecimal profitLoss = totalValue.subtract(totalInvestment);
+        BigDecimal totalAssetsWithCash = totalValue.add(goalAccount.getCash());
+
         double returnRate = 0.0;
 
         if (totalInvestment.compareTo(BigDecimal.ZERO) > 0) {
@@ -63,6 +65,7 @@ public class AssetService {
                 portfolioId,
                 totalInvestment,
                 totalValue,
+                totalAssetsWithCash,
                 profitLoss,
                 returnRate
         );
