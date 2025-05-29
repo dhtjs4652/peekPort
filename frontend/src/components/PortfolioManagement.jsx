@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { authAxios } from '../utils/authUtils';
-import StockDetailModal from './StockDetailModal'; // ✅ 모달 import 추가
+import StockDetailModal from './StockDetailModal';
 import {
   Plus,
   Trash2,
@@ -641,7 +641,7 @@ const PortfolioManagement = () => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {portfolios.map((portfolio) => (
-              <button
+              <div
                 key={portfolio.id}
                 onClick={() => handlePortfolioSelect(portfolio)}
                 className={`p-4 rounded-xl border-2 transition-all duration-300 text-left relative ${
@@ -743,7 +743,7 @@ const PortfolioManagement = () => {
                     </div>
                   </div>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         )}
