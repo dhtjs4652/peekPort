@@ -27,7 +27,6 @@ const PortfolioManagement = () => {
   const [selectedPortfolio, setSelectedPortfolio] = useState(null);
   const [portfolioName, setPortfolioName] = useState('');
   const [totalAmount, setTotalAmount] = useState('');
-  const [targetAmount, setTargetAmount] = useState('');
   const [cash, setCash] = useState('');
   const [portfolioType, setPortfolioType] = useState('BALANCED');
   const [stocks, setStocks] = useState([]);
@@ -237,7 +236,6 @@ const PortfolioManagement = () => {
       await authAxios.post('/api/portfolios', {
         name: portfolioName,
         totalAmount: totalAmount ? Number(totalAmount) : 0,
-        targetAmount: targetAmount ? Number(targetAmount) : 0,
         cash: cash ? Number(cash) : 0,
         portfolioType: portfolioType,
       });
@@ -245,7 +243,6 @@ const PortfolioManagement = () => {
       setTimeout(() => setSuccessMessage(null), 3000);
       setPortfolioName('');
       setTotalAmount('');
-      setTargetAmount('');
       setCash('');
       setPortfolioType('BALANCED');
       fetchPortfolios();
@@ -653,9 +650,6 @@ const PortfolioManagement = () => {
                   {portfolio.name || '이름 없음'}
                 </h3>
                 <div className="text-sm text-gray-600 space-y-1">
-                  <p>
-                    목표: {(portfolio.targetAmount || 0).toLocaleString()}원
-                  </p>
                   <p>현재: {(portfolio.totalAmount || 0).toLocaleString()}원</p>
                   {/* 투자 성향 표시 */}
                   <div className="flex items-center mt-2 pt-2 border-t border-gray-200">
@@ -758,7 +752,7 @@ const PortfolioManagement = () => {
         </div>
         <div className="space-y-6">
           {/* 기본 정보 입력 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <input
               type="text"
               value={portfolioName}
@@ -771,13 +765,6 @@ const PortfolioManagement = () => {
               value={totalAmount}
               onChange={(e) => setTotalAmount(e.target.value)}
               placeholder="현재 자산 (원)"
-              className="p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
-            />
-            <input
-              type="number"
-              value={targetAmount}
-              onChange={(e) => setTargetAmount(e.target.value)}
-              placeholder="목표 자산 (원)"
               className="p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
             />
             <input
@@ -1283,6 +1270,7 @@ const PortfolioManagement = () => {
           stock={selectedStockForDetail}
           isOpen={isStockDetailModalOpen}
           onClose={handleCloseStockDetail}
+          portfolioId={selectedPortfolio?.id}
         />
       )}
     </div>
