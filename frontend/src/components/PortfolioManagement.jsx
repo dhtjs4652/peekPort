@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { authAxios } from '../utils/authUtils';
+import StockDetailModal from './StockDetailModal'; // ✅ 모달 import 추가
 import {
   Plus,
   Trash2,
@@ -28,7 +29,7 @@ const PortfolioManagement = () => {
   const [totalAmount, setTotalAmount] = useState('');
   const [targetAmount, setTargetAmount] = useState('');
   const [cash, setCash] = useState('');
-  const [portfolioType, setPortfolioType] = useState('BALANCED'); // ✅ 새로 추가: 투자 성향 상태
+  const [portfolioType, setPortfolioType] = useState('BALANCED');
   const [stocks, setStocks] = useState([]);
   const [loadingPortfolios, setLoadingPortfolios] = useState(false);
   const [loadingStocks, setLoadingStocks] = useState(false);
@@ -45,6 +46,11 @@ const PortfolioManagement = () => {
   const [editingCash, setEditingCash] = useState(null);
   const [editCashValue, setEditCashValue] = useState('');
   const [loadingCashUpdate, setLoadingCashUpdate] = useState(false);
+
+  // ✅ 종목 상세 모달 관련 상태 추가
+  /* eslint-disable no-unused-vars */
+  const [selectedStockForDetail, setSelectedStockForDetail] = useState(null);
+  const [isStockDetailModalOpen, setIsStockDetailModalOpen] = useState(false);
 
   const [newStock, setNewStock] = useState({
     name: '',
@@ -63,7 +69,7 @@ const PortfolioManagement = () => {
     term: 'short',
   });
 
-  // ✅ 새로 추가: 투자 성향 옵션 정의
+  // 투자 성향 옵션 정의
   const portfolioTypeOptions = [
     {
       value: 'CONSERVATIVE',
@@ -94,10 +100,21 @@ const PortfolioManagement = () => {
     },
   ];
 
-  // ✅ 투자 성향별 라벨 매핑
+  // 투자 성향별 라벨 매핑
   const getPortfolioTypeLabel = (type) => {
     const option = portfolioTypeOptions.find((opt) => opt.value === type);
     return option ? option.label : type;
+  };
+
+  // ✅ 종목 상세 모달 관련 핸들러 추가
+  const handleStockClick = (stock) => {
+    setSelectedStockForDetail(stock);
+    setIsStockDetailModalOpen(true);
+  };
+
+  const handleCloseStockDetail = () => {
+    setIsStockDetailModalOpen(false);
+    setSelectedStockForDetail(null);
   };
 
   // 현금 수정 함수
@@ -212,7 +229,6 @@ const PortfolioManagement = () => {
     }
   };
 
-  // ✅ 수정: portfolioType 필드 추가
   const handlePortfolioSubmit = async () => {
     try {
       if (!portfolioName) {
@@ -224,7 +240,7 @@ const PortfolioManagement = () => {
         totalAmount: totalAmount ? Number(totalAmount) : 0,
         targetAmount: targetAmount ? Number(targetAmount) : 0,
         cash: cash ? Number(cash) : 0,
-        portfolioType: portfolioType, // ✅ 투자 성향 필드 추가
+        portfolioType: portfolioType,
       });
       setSuccessMessage('포트폴리오가 등록되었습니다.');
       setTimeout(() => setSuccessMessage(null), 3000);
@@ -232,7 +248,7 @@ const PortfolioManagement = () => {
       setTotalAmount('');
       setTargetAmount('');
       setCash('');
-      setPortfolioType('BALANCED'); // ✅ 투자 성향 초기화
+      setPortfolioType('BALANCED');
       fetchPortfolios();
     } catch {
       setError('포트폴리오 등록에 실패했습니다.');
@@ -460,7 +476,7 @@ const PortfolioManagement = () => {
             <h2 className="text-xl font-bold text-gray-900">
               {selectedPortfolio.name} 요약
             </h2>
-            {/* ✅ 투자 성향 표시 */}
+            {/* 투자 성향 표시 */}
             <div className="ml-auto flex items-center">
               {(() => {
                 const typeOption = portfolioTypeOptions.find(
@@ -642,7 +658,7 @@ const PortfolioManagement = () => {
                     목표: {(portfolio.targetAmount || 0).toLocaleString()}원
                   </p>
                   <p>현재: {(portfolio.totalAmount || 0).toLocaleString()}원</p>
-                  {/* ✅ 투자 성향 표시 */}
+                  {/* 투자 성향 표시 */}
                   <div className="flex items-center mt-2 pt-2 border-t border-gray-200">
                     {(() => {
                       const typeOption = portfolioTypeOptions.find(
