@@ -9,7 +9,7 @@ import {
   Save,
   Loader2,
 } from 'lucide-react';
-import { authAxios } from '../utils/authUtils'; // ✅ authAxios import 추가
+import { authAxios } from '../utils/authUtils';
 
 // 애니메이션 숫자 컴포넌트
 const AnimatedNumber = ({ value, suffix = '', duration = 1500 }) => {
@@ -53,53 +53,16 @@ const AnimatedNumber = ({ value, suffix = '', duration = 1500 }) => {
   );
 };
 
-// ✅ 슬라이더 컴포넌트 추가
-const Slider = ({
-  value,
-  onChange,
-  min = 0,
-  max = 100,
-  step = 1,
-  disabled = false,
-}) => {
-  return (
-    <div className="relative">
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        disabled={disabled}
-        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
-        style={{
-          background: `linear-gradient(to right, #3B82F6 0%, #3B82F6 ${
-            (value / max) * 100
-          }%, #E5E7EB ${(value / max) * 100}%, #E5E7EB 100%)`,
-        }}
-      />
-      <div className="flex justify-between text-xs text-gray-500 mt-1">
-        <span>{min}%</span>
-        <span className="font-medium text-blue-600">{value}%</span>
-        <span>{max}%</span>
-      </div>
-    </div>
-  );
-};
-
 const StockDetailModal = ({ isOpen, onClose, stock, portfolioId }) => {
-  // ✅ portfolioId prop 추가
-  // ✅ 백엔드 연동을 위한 상태 추가
+  // 백엔드 연동을 위한 상태
   const [stockDetail, setStockDetail] = useState(null);
-  const [targetRatio, setTargetRatio] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState(null);
   const [memo, setMemo] = useState('');
   const [isEditingMemo, setIsEditingMemo] = useState(false);
 
-  // ✅ 데이터 저장 (목표 비중 + 메모)
+  // 데이터 저장 (메모만)
   const handleSave = async () => {
     if (!stock?.id || !portfolioId) return;
 
@@ -117,7 +80,6 @@ const StockDetailModal = ({ isOpen, onClose, stock, portfolioId }) => {
         term: stockDetail?.term || stock.term,
         category: stockDetail?.category || stock.category,
         memo: memo,
-        targetRatio: targetRatio,
       };
 
       await authAxios.put(
@@ -135,7 +97,7 @@ const StockDetailModal = ({ isOpen, onClose, stock, portfolioId }) => {
     }
   };
 
-  // ✅ 모달이 열릴 때마다 데이터 로드
+  // 모달이 열릴 때마다 데이터 로드
   const fetchStockDetail = useCallback(async () => {
     if (!stock?.id || !portfolioId || !isOpen) return;
 
@@ -149,7 +111,6 @@ const StockDetailModal = ({ isOpen, onClose, stock, portfolioId }) => {
 
       const data = response.data;
       setStockDetail(data);
-      setTargetRatio(data.targetRatio || 0);
       setMemo(data.memo || '');
     } catch (err) {
       console.error('종목 상세 정보 로드 실패:', err);
@@ -168,7 +129,6 @@ const StockDetailModal = ({ isOpen, onClose, stock, portfolioId }) => {
   useEffect(() => {
     if (!isOpen) {
       setStockDetail(null);
-      setTargetRatio(0);
       setMemo('');
       setError(null);
       setIsEditingMemo(false);
@@ -177,7 +137,7 @@ const StockDetailModal = ({ isOpen, onClose, stock, portfolioId }) => {
 
   if (!isOpen) return null;
 
-  // ✅ 실제 데이터 또는 props 데이터 사용
+  // 실제 데이터 또는 props 데이터 사용
   const displayStock = stockDetail || stock;
 
   const calculateProfit = () => {
@@ -213,7 +173,7 @@ const StockDetailModal = ({ isOpen, onClose, stock, portfolioId }) => {
         </div>
 
         <div className="p-6">
-          {/* ✅ 로딩 상태 */}
+          {/* 로딩 상태 */}
           {isLoading ? (
             <div className="flex justify-center items-center h-40">
               <div className="flex items-center space-x-2">
@@ -222,7 +182,7 @@ const StockDetailModal = ({ isOpen, onClose, stock, portfolioId }) => {
               </div>
             </div>
           ) : error ? (
-            // ✅ 에러 상태
+            // 에러 상태
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
               <div className="flex items-center">
                 <X className="h-5 w-5 text-red-500 mr-2" />
@@ -274,32 +234,6 @@ const StockDetailModal = ({ isOpen, onClose, stock, portfolioId }) => {
                       duration={800}
                     />
                   </p>
-                </div>
-              </div>
-
-              {/* ✅ 목표 비중 설정 슬라이더 추가 */}
-              <div className="bg-blue-50 rounded-lg p-6 mb-6">
-                <h3 className="text-lg font-medium mb-4 flex items-center">
-                  <DollarSign className="h-5 w-5 mr-2 text-blue-600" />
-                  목표 비중 설정
-                </h3>
-                <div className="space-y-4">
-                  <Slider
-                    value={targetRatio}
-                    onChange={setTargetRatio}
-                    min={0}
-                    max={100}
-                    step={1}
-                    disabled={isSaving}
-                  />
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-600">
-                      포트폴리오 내 목표 비중
-                    </span>
-                    <span className="font-medium text-blue-600">
-                      {targetRatio}%
-                    </span>
-                  </div>
                 </div>
               </div>
 
@@ -395,7 +329,7 @@ const StockDetailModal = ({ isOpen, onClose, stock, portfolioId }) => {
                 </div>
               </div>
 
-              {/* ✅ 저장 및 닫기 버튼 */}
+              {/* 저장 및 닫기 버튼 */}
               <div className="flex justify-end space-x-3 pt-4 border-t">
                 <button
                   className="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors duration-200"
