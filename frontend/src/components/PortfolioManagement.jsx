@@ -48,7 +48,6 @@ const PortfolioManagement = () => {
   const [loadingCashUpdate, setLoadingCashUpdate] = useState(false);
 
   // ✅ 종목 상세 모달 관련 상태 추가
-  /* eslint-disable no-unused-vars */
   const [selectedStockForDetail, setSelectedStockForDetail] = useState(null);
   const [isStockDetailModalOpen, setIsStockDetailModalOpen] = useState(false);
 
@@ -1040,6 +1039,9 @@ const PortfolioManagement = () => {
                   <div
                     key={stock.id}
                     className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-xl transition-all duration-300 hover:border-blue-300"
+                    onClick={
+                      !editingStock ? () => handleStockClick(stock) : undefined
+                    }
                   >
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex-1">
@@ -1275,6 +1277,14 @@ const PortfolioManagement = () => {
           </>
         )}
       </div>
+      {/* ✅ StockDetailModal 추가 */}
+      {isStockDetailModalOpen && selectedStockForDetail && (
+        <StockDetailModal
+          stock={selectedStockForDetail}
+          isOpen={isStockDetailModalOpen}
+          onClose={handleCloseStockDetail}
+        />
+      )}
     </div>
   );
 };
