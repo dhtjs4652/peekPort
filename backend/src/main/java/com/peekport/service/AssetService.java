@@ -98,4 +98,15 @@ public class AssetService {
         return new AssetResponse(updated);
     }
 
+    public BigDecimal calculateTotalAssets(GoalAccount goalAccount) {
+        List<Asset> assets = assetRepository.findByGoalAccountAndUser(goalAccount, goalAccount.getUser());
+
+        BigDecimal totalValue = BigDecimal.ZERO;
+        for (Asset asset : assets) {
+            BigDecimal current = asset.getCurrentPrice().multiply(BigDecimal.valueOf(asset.getQuantity()));
+            totalValue = totalValue.add(current);
+        }
+
+        return totalValue.add(goalAccount.getCash());
+    }
 }

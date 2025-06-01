@@ -16,9 +16,11 @@ import java.util.List;
 public class PortfolioService {
 
     private final GoalAccountRepository goalAccountRepository;
+    private final AssetService assetService;
 
-    public PortfolioService(GoalAccountRepository goalAccountRepository) {
+    public PortfolioService(GoalAccountRepository goalAccountRepository, AssetService assetService) {
         this.goalAccountRepository = goalAccountRepository;
+        this.assetService = assetService;
     }
 
     // 포트폴리오 조회 메서드
@@ -36,7 +38,7 @@ public class PortfolioService {
         GoalAccount portfolio = new GoalAccount();
         portfolio.setUser(user);
         portfolio.setName(request.getName());
-        portfolio.setTotalAmount(request.getTotalAmount());
+        // portfolio.setTotalAmount(request.getTotalAmount()); // 제거: 더 이상 수동 입력 사용 안 함
         portfolio.setTargetAmount(request.getTargetAmount());
         portfolio.setCash(request.getCash() != null ? request.getCash() : BigDecimal.ZERO);
         portfolio.setPortfolioType(
@@ -44,11 +46,12 @@ public class PortfolioService {
         );
 
         GoalAccount saved = goalAccountRepository.save(portfolio);
+        BigDecimal calculatedTotal = assetService.calculateTotalAssets(saved);
 
         return new GoalAccountResponse(
                 saved.getId(),
                 saved.getName(),
-                saved.getTotalAmount(),
+                calculatedTotal,        // ✅ 계산된 총 자산 사용
                 saved.getTargetAmount(),
                 saved.getCash(),
                 saved.getPortfolioType()
@@ -58,14 +61,17 @@ public class PortfolioService {
     public List<GoalAccountResponse> getPortfoliosByUser(User user) {
         List<GoalAccount> list = goalAccountRepository.findByUser(user);
         return list.stream()
-                .map(p -> new GoalAccountResponse(
-                        p.getId(),
-                        p.getName(),
-                        p.getTotalAmount(),
-                        p.getTargetAmount(),
-                        p.getCash(),
-                        p.getPortfolioType()
-                ))
+                .map(p -> {
+                    BigDecimal calculatedTotal = assetService.calculateTotalAssets(p);
+                    return new GoalAccountResponse(
+                            p.getId(),
+                            p.getName(),
+                            calculatedTotal,        // ✅ 계산된 총 자산 사용
+                            p.getTargetAmount(),
+                            p.getCash(),
+                            p.getPortfolioType()
+                    );
+                })
                 .toList();
     }
 
@@ -75,15 +81,15 @@ public class PortfolioService {
 
         goal.setCash(cash);
         GoalAccount updated = goalAccountRepository.save(goal);
+        BigDecimal calculatedTotal = assetService.calculateTotalAssets(updated); // ✅ 자동 계산
 
         return new GoalAccountResponse(
                 updated.getId(),
                 updated.getName(),
-                updated.getTotalAmount(),
+                calculatedTotal,        // ✅ 계산된 총 자산 사용
                 updated.getTargetAmount(),
                 updated.getCash(),
                 updated.getPortfolioType()
         );
     }
-
 }
