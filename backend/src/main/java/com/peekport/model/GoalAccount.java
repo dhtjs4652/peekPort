@@ -21,7 +21,7 @@ public class GoalAccount {
 
     private Long targetAmount; // 목표 금액 (예: 1,000만 원)
 
-    private Long totalAmount; // 현재 총 자산 금액
+    private BigDecimal totalAmount; // 현재 총 자산 금액
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")

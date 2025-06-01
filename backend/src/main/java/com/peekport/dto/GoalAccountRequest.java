@@ -10,7 +10,7 @@ import java.math.BigDecimal;
 @Setter
 public class GoalAccountRequest {
     private String name;
-    private Long totalAmount;
+    private BigDecimal totalAmount;
     private Long targetAmount;
     private BigDecimal cash;
     private PortfolioType portfolioType;

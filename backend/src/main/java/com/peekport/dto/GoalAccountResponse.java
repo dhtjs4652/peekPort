@@ -13,7 +13,7 @@ import java.math.BigDecimal;
 public class GoalAccountResponse {
     private Long id;
     private String name;
-    private Long totalAmount;
+    private BigDecimal totalAmount;
     private Long targetAmount;
     private BigDecimal cash;
     private PortfolioType portfolioType;
