@@ -212,6 +212,10 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // 포트폴리오 목록 상태 추가
+  const [portfolios, setPortfolios] = useState([]);
+  const [primaryPortfolioId, setPrimaryPortfolioId] = useState(null);
+
   // 목표 설정 편집 상태
   const [isEditingGoal, setIsEditingGoal] = useState(false);
   const [editedGoal, setEditedGoal] = useState({
@@ -313,7 +317,16 @@ const Dashboard = () => {
       const data = await response.json();
       console.log('Portfolio API Response:', data);
 
+      // 포트폴리오 목록 저장
+      setPortfolios(data);
+
+      // 첫 번째 포트폴리오를 주요 포트폴리오로 설정
       if (data && data.length > 0) {
+        setPrimaryPortfolioId(data[0].id);
+
+        // 첫 번째 포트폴리오의 목표 금액으로 설정
+        const firstPortfolio = data[0];
+
         // 모든 포트폴리오의 총 자산 합계 계산
         const totalAssets = data.reduce((sum, portfolio) => {
           return sum + (portfolio.totalAmount || 0);
@@ -333,10 +346,17 @@ const Dashboard = () => {
 
         setPortfolioData((prev) => ({
           ...prev,
+          targetAmount: firstPortfolio.targetAmount || 100000000,
           currentAmount: totalAssets,
           cash: totalCash,
           yesterdayAmount: yesterdayAmount,
           dailyReturn: parseFloat(dailyReturn.toFixed(2)),
+        }));
+
+        // editedGoal도 업데이트
+        setEditedGoal((prev) => ({
+          ...prev,
+          amount: firstPortfolio.targetAmount || 100000000,
         }));
       }
     } catch (err) {
@@ -466,14 +486,56 @@ const Dashboard = () => {
     setActiveIndex(null);
   };
 
-  // 목표 편집 제출 핸들러
-  const handleGoalSubmit = () => {
-    setPortfolioData({
-      ...portfolioData,
-      targetAmount: editedGoal.amount,
-      goalPeriod: { ...editedGoal.period },
-    });
-    setIsEditingGoal(false);
+  // 목표 편집 제출 핸들러 - 수정된 부분
+  const handleGoalSubmit = async () => {
+    try {
+      const token = getToken();
+      if (!token) {
+        throw new Error('인증 토큰이 없습니다.');
+      }
+
+      // 첫 번째 포트폴리오의 ID를 사용 (또는 주요 포트폴리오 ID)
+      const portfolioId =
+        primaryPortfolioId || (portfolios.length > 0 ? portfolios[0].id : null);
+
+      if (!portfolioId) {
+        throw new Error('포트폴리오를 찾을 수 없습니다.');
+      }
+
+      const response = await fetch(
+        `http://localhost:8080/api/portfolios/${portfolioId}/target`,
+        {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            targetAmount: editedGoal.amount,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // 성공시 로컬 state 업데이트
+      setPortfolioData({
+        ...portfolioData,
+        targetAmount: editedGoal.amount,
+        goalPeriod: { ...editedGoal.period }, // 기간은 로컬에서만 관리
+      });
+
+      setIsEditingGoal(false);
+
+      // 성공 메시지
+      console.log('목표 금액이 성공적으로 업데이트되었습니다.');
+    } catch (err) {
+      console.error('목표 금액 업데이트 실패:', err);
+      setError('목표 금액 업데이트에 실패했습니다: ' + err.message);
+      // 에러 발생시 편집 모드 유지
+    }
   };
 
   // 목표 편집 취소 핸들러
