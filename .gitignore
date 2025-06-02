@@ -14,4 +14,4 @@ build/
 # Logs 
 *.log 
 npm-debug.log* 
-frontend/
+/frontend/
