@@ -7,7 +7,7 @@ import {
   X,
   Eye,
 } from 'lucide-react';
-import axios from 'axios';
+import api from '../utils/api.js';
 
 const RebalancingAlert = ({ portfolioId, onViewDetails }) => {
   const [alertData, setAlertData] = useState(null);
@@ -46,8 +46,8 @@ const RebalancingAlert = ({ portfolioId, onViewDetails }) => {
         ],
       };
 
-      const response = await axios.post(
-        '/api/portfolio/rebalancing/analyze',
+      const response = await api.post(
+        '/portfolio/rebalancing/analyze',
         mockRequest
       );
       setAlertData(response.data);
@@ -61,8 +61,8 @@ const RebalancingAlert = ({ portfolioId, onViewDetails }) => {
       setLoading(true);
 
       // 1. 간단한 상태 체크
-      const statusResponse = await axios.get(
-        `/api/portfolio/${portfolioId}/rebalancing/status`
+      const statusResponse = await api.get(
+        `/portfolio/${portfolioId}/rebalancing/status`
       );
       const needsRebalancing = statusResponse.data;
 
