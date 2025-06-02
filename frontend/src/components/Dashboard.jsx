@@ -10,6 +10,8 @@ import {
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Sector } from 'recharts';
 import { getToken } from '../utils/authUtils'; // authUtils에서 getToken 가져오기
+import RebalancingAlert from './RebalancingAlert';
+import RebalancingDetailModal from './RebalancingDetailModal';
 
 // 애니메이션 숫자 컴포넌트
 const AnimatedNumber = ({
@@ -216,6 +218,11 @@ const Dashboard = () => {
   const [portfolios, setPortfolios] = useState([]);
   const [primaryPortfolioId, setPrimaryPortfolioId] = useState(null);
 
+  // 리밸런싱 관련 상태 추가
+  const [showRebalancingDetailModal, setShowRebalancingDetailModal] =
+    useState(false);
+  const [rebalancingDetailData, setRebalancingDetailData] = useState(null);
+
   // 목표 설정 편집 상태
   const [isEditingGoal, setIsEditingGoal] = useState(false);
   const [editedGoal, setEditedGoal] = useState({
@@ -233,6 +240,12 @@ const Dashboard = () => {
 
   // 종목별 데이터 (API에서 로드)
   const [stocksData, setStocksData] = useState([]);
+
+  // 리밸런싱 상세 보기 핸들러
+  const handleViewRebalancingDetails = (rebalancingData) => {
+    setRebalancingDetailData(rebalancingData);
+    setShowRebalancingDetailModal(true);
+  };
 
   // 현금 데이터
   const cashData = [
@@ -643,6 +656,14 @@ const Dashboard = () => {
         </p>
       </div>
 
+      {/* 리밸런싱 알림 - 대시보드 최상단에 배치 */}
+      <RebalancingAlert
+        portfolioId={
+          primaryPortfolioId || (portfolios.length > 0 ? portfolios[0].id : 1)
+        }
+        onViewDetails={handleViewRebalancingDetails}
+      />
+
       <div className="bg-white rounded-xl p-6 shadow-sm relative overflow-hidden">
         {/* 수익률 피드백 알림 */}
         {portfolioData.dailyReturn > 0 && (
@@ -1012,6 +1033,13 @@ const Dashboard = () => {
           </p>
         </div>
       </div>
+
+      {/* 리밸런싱 상세 모달 */}
+      <RebalancingDetailModal
+        isOpen={showRebalancingDetailModal}
+        onClose={() => setShowRebalancingDetailModal(false)}
+        rebalancingData={rebalancingDetailData}
+      />
     </div>
   );
 };
