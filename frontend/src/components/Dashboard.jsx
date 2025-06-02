@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   TrendingUp,
   ChevronDown,
@@ -295,7 +295,7 @@ const Dashboard = () => {
   const [progressWidth, setProgressWidth] = useState(0);
 
   // API 호출 함수들
-  const fetchPortfolioData = async () => {
+  const fetchPortfolioData = useCallback(async () => {
     try {
       const token = getToken(); // authUtils의 getToken 사용
       if (!token) {
@@ -363,39 +363,23 @@ const Dashboard = () => {
       console.error('포트폴리오 데이터 로드 실패:', err);
       setError(err.message);
     }
-  };
+  }, []); // 의존성 없음 - 함수 내부에서 사용하는 상태들은 setter 함수들이므로 안정적
 
-  const fetchStocksData = async () => {
+  const fetchStocksData = useCallback(async () => {
     try {
       const token = getToken(); // authUtils의 getToken 사용
       if (!token) {
         throw new Error('인증 토큰이 없습니다.');
       }
 
-      // 모든 포트폴리오 가져오기
-      const portfoliosResponse = await fetch(
-        'http://localhost:8080/api/portfolios',
-        {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (!portfoliosResponse.ok) {
-        throw new Error(`HTTP error! status: ${portfoliosResponse.status}`);
-      }
-
-      const portfolios = await portfoliosResponse.json();
       const allStocks = [];
 
-      // 각 포트폴리오의 자산들을 가져오기
+      // portfolios state를 사용 (이미 fetchPortfolioData에서 로드됨)
       for (const portfolio of portfolios) {
         try {
+          // 올바른 백엔드 API 엔드포인트 사용
           const assetsResponse = await fetch(
-            `http://localhost:8080/api/assets/portfolio/${portfolio.id}`,
+            `http://localhost:8080/api/portfolios/${portfolio.id}/stocks`,
             {
               method: 'GET',
               headers: {
@@ -408,7 +392,7 @@ const Dashboard = () => {
           if (assetsResponse.ok) {
             const assets = await assetsResponse.json();
 
-            // 자산 데이터를 차트 형식으로 변환
+            // AssetResponse 구조에 맞게 데이터 매핑
             assets.forEach((asset, index) => {
               const colors = [
                 '#0088FE',
@@ -421,22 +405,25 @@ const Dashboard = () => {
               ];
               const colorIndex = index % colors.length;
 
-              // 투자 기간에 따른 분류 (예시 로직)
-              let term = 'mid';
+              // term 필드를 직접 사용 (백엔드에서 제공)
               let termLabel = '중기';
-
-              if (asset.stockName && asset.stockName.includes('ETF')) {
-                term = 'long';
-                termLabel = '장기';
-              } else if (asset.quantity > 100) {
-                term = 'short';
-                termLabel = '단기';
+              switch (asset.term) {
+                case 'short':
+                  termLabel = '단기';
+                  break;
+                case 'long':
+                  termLabel = '장기';
+                  break;
+                case 'mid':
+                default:
+                  termLabel = '중기';
+                  break;
               }
 
               allStocks.push({
-                name: asset.stockName || '알 수 없는 종목',
-                value: asset.evaluationAmount || 0,
-                term: term,
+                name: asset.name || '알 수 없는 종목',
+                value: asset.totalValue || 0, // AssetResponse의 totalValue 사용
+                term: asset.term || 'mid',
                 termLabel: termLabel,
                 returnRate: asset.returnRate || 0,
                 color: colors[colorIndex],
@@ -456,7 +443,22 @@ const Dashboard = () => {
       console.error('종목 데이터 로드 실패:', err);
       setError(err.message);
     }
-  };
+  }, [portfolios]); // portfolios가 변경될 때마다 함수 재생성
+
+  // 진행 바 애니메이션
+  const progressPercentage =
+    portfolioData.targetAmount > 0
+      ? (portfolioData.currentAmount / portfolioData.targetAmount) * 100
+      : 0;
+
+  useEffect(() => {
+    // 지연 후 진행바 채우기
+    const timer = setTimeout(() => {
+      setProgressWidth(progressPercentage);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [progressPercentage]);
 
   // 컴포넌트 마운트 시 데이터 로드
   useEffect(() => {
@@ -465,7 +467,11 @@ const Dashboard = () => {
       setError(null);
 
       try {
-        await Promise.all([fetchPortfolioData(), fetchStocksData()]);
+        // 1. 먼저 포트폴리오 데이터를 로드 (portfolios state 설정)
+        await fetchPortfolioData();
+
+        // 2. 포트폴리오 데이터 로드 후 주식 데이터 로드
+        // portfolios state가 업데이트된 후 실행되도록 별도로 처리
       } catch (err) {
         console.error('데이터 로드 실패:', err);
         setError('데이터를 불러오는데 실패했습니다.');
@@ -475,7 +481,14 @@ const Dashboard = () => {
     };
 
     loadData();
-  }, []);
+  }, [fetchPortfolioData]);
+
+  // portfolios state가 업데이트되면 주식 데이터 로드
+  useEffect(() => {
+    if (portfolios.length > 0) {
+      fetchStocksData();
+    }
+  }, [portfolios, fetchStocksData]);
 
   // 활성 인덱스 설정 핸들러
   const onPieEnter = (_, index) => {
@@ -487,7 +500,7 @@ const Dashboard = () => {
   };
 
   // 목표 편집 제출 핸들러 - 수정된 부분
-  const handleGoalSubmit = async () => {
+  const handleGoalSubmit = useCallback(async () => {
     try {
       const token = getToken();
       if (!token) {
@@ -521,11 +534,11 @@ const Dashboard = () => {
       }
 
       // 성공시 로컬 state 업데이트
-      setPortfolioData({
-        ...portfolioData,
+      setPortfolioData((prev) => ({
+        ...prev,
         targetAmount: editedGoal.amount,
         goalPeriod: { ...editedGoal.period }, // 기간은 로컬에서만 관리
-      });
+      }));
 
       setIsEditingGoal(false);
 
@@ -536,19 +549,19 @@ const Dashboard = () => {
       setError('목표 금액 업데이트에 실패했습니다: ' + err.message);
       // 에러 발생시 편집 모드 유지
     }
-  };
+  }, [editedGoal.amount, editedGoal.period, primaryPortfolioId, portfolios]);
 
   // 목표 편집 취소 핸들러
-  const handleEditCancel = () => {
+  const handleEditCancel = useCallback(() => {
     setEditedGoal({
       amount: portfolioData.targetAmount,
       period: { ...portfolioData.goalPeriod },
     });
     setIsEditingGoal(false);
-  };
+  }, [portfolioData.targetAmount, portfolioData.goalPeriod]);
 
   // 기간 단위에 따른 표시 텍스트
-  const getPeriodText = (period) => {
+  const getPeriodText = useCallback((period) => {
     switch (period.unit) {
       case 'year':
         return period.value > 1 ? `${period.value}년` : '1년';
@@ -561,30 +574,15 @@ const Dashboard = () => {
       default:
         return '1년';
     }
-  };
-
-  // 진행 바 애니메이션
-  const progressPercentage =
-    portfolioData.targetAmount > 0
-      ? (portfolioData.currentAmount / portfolioData.targetAmount) * 100
-      : 0;
-
-  useEffect(() => {
-    // 지연 후 진행바 채우기
-    const timer = setTimeout(() => {
-      setProgressWidth(progressPercentage);
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [progressPercentage]);
+  }, []);
 
   // 커스텀 레전드 데이터 생성
-  const getCustomLegendPayload = (data) => {
+  const getCustomLegendPayload = useCallback((data) => {
     return data.map((item) => ({
       value: item.name,
       color: item.color,
     }));
-  };
+  }, []);
 
   // 로딩 상태 표시
   if (loading) {
