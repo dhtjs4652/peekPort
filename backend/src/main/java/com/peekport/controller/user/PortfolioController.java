@@ -1,9 +1,6 @@
 package com.peekport.controller.user;
 
-import com.peekport.dto.GoalAccountRequest;
-import com.peekport.dto.GoalAccountResponse;
-import com.peekport.dto.PortfolioSummaryResponse;
-import com.peekport.dto.UpdateCashRequest;
+import com.peekport.dto.*;
 import com.peekport.model.User;
 import com.peekport.repository.UserRepository;
 import com.peekport.service.AssetService;
@@ -72,6 +69,23 @@ public class PortfolioController {
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
         GoalAccountResponse response = portfolioService.updateCash(portfolioId, request.getCash(), user);
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{portfolioId}/target")  // ← portfolioId로 통일
+    public ResponseEntity<GoalAccountResponse> updateTargetAmount(
+            @PathVariable Long portfolioId,  // ← portfolioId로 통일
+            @RequestBody UpdateTargetRequest request,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) throws AccessDeniedException {  // ← 예외 처리 추가
+        User user = userRepository.findByEmail(userDetails.getUsername())  // ← User 객체 생성
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        GoalAccountResponse response = portfolioService.updateTargetAmount(
+                portfolioId,  // ← portfolioId 사용
+                request.getTargetAmount(),
+                user  // ← User 객체 전달
+        );
         return ResponseEntity.ok(response);
     }
 

@@ -92,4 +92,22 @@ public class PortfolioService {
                 updated.getPortfolioType()
         );
     }
+
+    public GoalAccountResponse updateTargetAmount(Long portfolioId, Long newTargetAmount, User user) throws AccessDeniedException {
+        GoalAccount account = goalAccountRepository.findByIdAndUserId(portfolioId, user.getId())
+                .orElseThrow(() -> new AccessDeniedException("해당 포트폴리오에 접근할 수 없습니다."));
+
+        account.setTargetAmount(newTargetAmount);
+        goalAccountRepository.save(account);
+
+        return new GoalAccountResponse(
+                account.getId(),
+                account.getName(),
+                account.getTotalAmount(),
+                account.getTargetAmount(),
+                account.getCash(),
+                account.getPortfolioType()
+        );
+    }
+
 }
