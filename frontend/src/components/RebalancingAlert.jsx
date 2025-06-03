@@ -3,9 +3,10 @@ import {
   AlertTriangle,
   TrendingUp,
   TrendingDown,
-  Minus,
+  DollarSign,
   X,
   Eye,
+  PieChart,
 } from 'lucide-react';
 import api from '../utils/api.js';
 
@@ -15,44 +16,34 @@ const RebalancingAlert = ({ portfolioId, onViewDetails }) => {
   const [showAlert, setShowAlert] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const fetchDetailedAnalysis = useCallback(async () => {
+  const fetchAssetAllocationAnalysis = useCallback(async () => {
     try {
-      // 실제로는 현재 포트폴리오 데이터를 가져와서 분석 요청
-      // 여기서는 예시 데이터 사용
-      const mockRequest = {
-        portfolio_id: portfolioId,
-        total_asset_value: 10000000,
-        current_holdings: [
-          {
-            stock_code: '005930',
-            stock_name: '삼성전자',
-            current_shares: 50,
-            current_price: 70000,
-            current_value: 3500000,
-            current_ratio: 35.0,
-          },
-          {
-            stock_code: '000660',
-            stock_name: 'SK하이닉스',
-            current_shares: 30,
-            current_price: 120000,
-            current_value: 3600000,
-            current_ratio: 36.0,
-          },
-        ],
-        target_allocations: [
-          { stock_code: '005930', target_ratio: 20.0 },
-          { stock_code: '000660', target_ratio: 25.0 },
-        ],
+      console.log(`자산 배분 분석 요청 - Portfolio ID: ${portfolioId}`);
+
+      // 실제 자산 배분 분석 API 호출 (추후 구현)
+      // const response = await api.get(`/portfolio/${portfolioId}/rebalancing/asset-allocation`);
+
+      // 현재는 목적에 맞는 예시 데이터 사용
+      const mockAnalysis = {
+        totalAssetValue: 10000000,
+        currentStockValue: 8500000,
+        currentCashValue: 1500000,
+        currentStockRatio: 85.0,
+        currentCashRatio: 15.0,
+        targetStockRatio: 70.0,
+        targetCashRatio: 30.0,
+        stockDeviation: 15.0, // 85% - 70% = 15% 초과
+        cashDeviation: -15.0, // 15% - 30% = -15% 부족
+        stockAdjustment: -1500000, // 주식 1,500,000원 매도 필요
+        cashAdjustment: 1500000, // 현금 1,500,000원 증가 필요
+        recommendation:
+          '주식 비중이 15.0% 초과되었습니다. 1,500,000원 상당의 주식을 매도하여 현금을 늘리는 것을 권장합니다.',
+        needsRebalancing: true,
       };
 
-      const response = await api.post(
-        '/portfolio/rebalancing/analyze',
-        mockRequest
-      );
-      setAlertData(response.data);
+      setAlertData(mockAnalysis);
     } catch (error) {
-      console.error('리밸런싱 분석 오류:', error);
+      console.error('자산 배분 분석 오류:', error);
     }
   }, [portfolioId]);
 
@@ -60,15 +51,17 @@ const RebalancingAlert = ({ portfolioId, onViewDetails }) => {
     try {
       setLoading(true);
 
-      // 1. 간단한 상태 체크
+      // 1. 리밸런싱 상태 체크
       const statusResponse = await api.get(
         `/portfolio/${portfolioId}/rebalancing/status`
       );
       const needsRebalancing = statusResponse.data;
 
+      console.log(`리밸런싱 필요 여부: ${needsRebalancing}`);
+
       if (needsRebalancing) {
-        // 2. 상세 분석 데이터 요청
-        await fetchDetailedAnalysis();
+        // 2. 자산 배분 상세 분석 데이터 요청
+        await fetchAssetAllocationAnalysis();
         setShowAlert(true);
       } else {
         setShowAlert(false);
@@ -79,37 +72,31 @@ const RebalancingAlert = ({ portfolioId, onViewDetails }) => {
       console.error('리밸런싱 상태 확인 오류:', error);
       setLoading(false);
     }
-  }, [portfolioId, fetchDetailedAnalysis]);
+  }, [portfolioId, fetchAssetAllocationAnalysis]);
 
   useEffect(() => {
     if (portfolioId) {
       checkRebalancingStatus();
     }
-  }, [portfolioId, checkRebalancingStatus]); // checkRebalancingStatus를 의존성에서 제거
+  }, [portfolioId, checkRebalancingStatus]);
 
   const dismissAlert = () => {
     setShowAlert(false);
   };
 
-  const getActionIcon = (action) => {
-    switch (action) {
-      case 'BUY':
-        return <TrendingUp className="w-4 h-4 text-blue-500" />;
-      case 'SELL':
-        return <TrendingDown className="w-4 h-4 text-red-500" />;
-      default:
-        return <Minus className="w-4 h-4 text-gray-500" />;
-    }
+  const getDeviationColor = (deviation) => {
+    if (Math.abs(deviation) >= 15) return 'text-red-600';
+    if (Math.abs(deviation) >= 10) return 'text-orange-600';
+    return 'text-yellow-600';
   };
 
-  const getActionColor = (action) => {
-    switch (action) {
-      case 'BUY':
-        return 'text-blue-600 bg-blue-50';
-      case 'SELL':
-        return 'text-red-600 bg-red-50';
-      default:
-        return 'text-gray-600 bg-gray-50';
+  const getActionIcon = (adjustment) => {
+    if (adjustment > 0) {
+      return <TrendingUp className="w-4 h-4 text-blue-500" />;
+    } else if (adjustment < 0) {
+      return <TrendingDown className="w-4 h-4 text-red-500" />;
+    } else {
+      return <DollarSign className="w-4 h-4 text-gray-500" />;
     }
   };
 
@@ -118,7 +105,7 @@ const RebalancingAlert = ({ portfolioId, onViewDetails }) => {
       <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
         <div className="flex items-center space-x-3">
           <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
-          <span className="text-gray-600">리밸런싱 상태 확인 중...</span>
+          <span className="text-gray-600">자산 배분 상태 확인 중...</span>
         </div>
       </div>
     );
@@ -127,11 +114,6 @@ const RebalancingAlert = ({ portfolioId, onViewDetails }) => {
   if (!showAlert || !alertData) {
     return null;
   }
-
-  const highPriorityRecommendations =
-    alertData.recommendations?.filter(
-      (r) => r.action !== 'HOLD' && r.priority <= 3
-    ) || [];
 
   return (
     <div className="bg-gradient-to-r from-orange-50 to-red-50 rounded-lg shadow-md border border-orange-200 mb-6">
@@ -144,11 +126,10 @@ const RebalancingAlert = ({ portfolioId, onViewDetails }) => {
             </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900">
-                리밸런싱 필요
+                자산 배분 리밸런싱 필요
               </h3>
               <p className="text-sm text-gray-600">
-                포트폴리오가 목표 비중에서 이탈했습니다 (총{' '}
-                {alertData.total_deviation?.toFixed(1)}% 이탈)
+                주식과 현금의 비율이 목표에서 벗어났습니다
               </p>
             </div>
           </div>
@@ -169,81 +150,192 @@ const RebalancingAlert = ({ portfolioId, onViewDetails }) => {
         </div>
       </div>
 
-      {/* 요약 정보 */}
+      {/* 자산 배분 현황 */}
       <div className="p-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
           <div className="text-center">
             <div className="text-2xl font-bold text-gray-900">
-              {highPriorityRecommendations.length}
+              ₩{alertData.totalAssetValue?.toLocaleString()}
             </div>
-            <div className="text-sm text-gray-600">조정 필요 종목</div>
+            <div className="text-sm text-gray-600">총 자산</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600">
-              ₩{alertData.cash_requirement?.toLocaleString() || 0}
+            <div
+              className={`text-2xl font-bold ${getDeviationColor(
+                alertData.stockDeviation
+              )}`}
+            >
+              {alertData.currentStockRatio?.toFixed(1)}%
             </div>
-            <div className="text-sm text-gray-600">추가 자금 필요</div>
+            <div className="text-sm text-gray-600">
+              현재 주식 비중 (목표: {alertData.targetStockRatio}%)
+            </div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-red-600">
-              ₩{alertData.estimated_cost?.toLocaleString() || 0}
+            <div
+              className={`text-2xl font-bold ${getDeviationColor(
+                alertData.cashDeviation
+              )}`}
+            >
+              {alertData.currentCashRatio?.toFixed(1)}%
             </div>
-            <div className="text-sm text-gray-600">예상 수수료</div>
+            <div className="text-sm text-gray-600">
+              현재 현금 비중 (목표: {alertData.targetCashRatio}%)
+            </div>
           </div>
           <div className="text-center">
             <button
               onClick={() => onViewDetails && onViewDetails(alertData)}
               className="flex items-center justify-center space-x-1 w-full px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
             >
-              <Eye className="w-4 h-4" />
-              <span className="text-sm">상세보기</span>
+              <PieChart className="w-4 h-4" />
+              <span className="text-sm">상세분석</span>
             </button>
           </div>
         </div>
 
-        {/* 상세 추천사항 (확장 시) */}
+        {/* 추천사항 요약 */}
+        <div className="bg-white rounded-lg p-4 border border-orange-100">
+          <h4 className="font-medium text-gray-900 mb-2 flex items-center">
+            <AlertTriangle className="w-4 h-4 text-orange-500 mr-2" />
+            추천사항
+          </h4>
+          <p className="text-gray-700">{alertData.recommendation}</p>
+        </div>
+
+        {/* 상세 정보 (확장 시) */}
         {isExpanded && (
-          <div className="space-y-3">
-            <h4 className="font-medium text-gray-900 border-b border-gray-200 pb-2">
-              주요 추천사항
-            </h4>
-            {highPriorityRecommendations.slice(0, 5).map((rec, index) => (
-              <div
-                key={`recommendation-${index}`}
-                className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200"
-              >
-                <div className="flex items-center space-x-3">
-                  {getActionIcon(rec.action)}
-                  <div>
-                    <div className="font-medium text-gray-900">
-                      {rec.stock_name}
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      현재 {rec.current_ratio?.toFixed(1)}% → 목표{' '}
-                      {rec.target_ratio?.toFixed(1)}%
-                    </div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div
-                    className={`px-2 py-1 rounded-full text-xs font-medium ${getActionColor(
-                      rec.action
+          <div className="mt-4 space-y-4">
+            <div className="border-t border-gray-200 pt-4">
+              <h4 className="font-medium text-gray-900 mb-3">
+                현재 vs 목표 비율
+              </h4>
+
+              {/* 주식 비율 */}
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-700">
+                    주식
+                  </span>
+                  <span
+                    className={`text-sm font-medium ${getDeviationColor(
+                      alertData.stockDeviation
                     )}`}
                   >
-                    {rec.action === 'BUY'
-                      ? '매수'
-                      : rec.action === 'SELL'
-                      ? '매도'
-                      : '유지'}
+                    {alertData.currentStockRatio?.toFixed(1)}%
+                    {alertData.stockDeviation > 0
+                      ? ` (+${alertData.stockDeviation.toFixed(1)}%)`
+                      : ` (${alertData.stockDeviation.toFixed(1)}%)`}
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className={`h-2 rounded-full ${
+                      alertData.stockDeviation > 10
+                        ? 'bg-red-500'
+                        : alertData.stockDeviation > 0
+                        ? 'bg-orange-500'
+                        : 'bg-blue-500'
+                    }`}
+                    style={{
+                      width: `${Math.min(alertData.currentStockRatio, 100)}%`,
+                    }}
+                  ></div>
+                </div>
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>0%</span>
+                  <span className="font-medium">
+                    목표: {alertData.targetStockRatio}%
+                  </span>
+                  <span>100%</span>
+                </div>
+              </div>
+
+              {/* 현금 비율 */}
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-700">
+                    현금
+                  </span>
+                  <span
+                    className={`text-sm font-medium ${getDeviationColor(
+                      alertData.cashDeviation
+                    )}`}
+                  >
+                    {alertData.currentCashRatio?.toFixed(1)}%
+                    {alertData.cashDeviation > 0
+                      ? ` (+${alertData.cashDeviation.toFixed(1)}%)`
+                      : ` (${alertData.cashDeviation.toFixed(1)}%)`}
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className={`h-2 rounded-full ${
+                      Math.abs(alertData.cashDeviation) > 10
+                        ? 'bg-red-500'
+                        : Math.abs(alertData.cashDeviation) > 0
+                        ? 'bg-orange-500'
+                        : 'bg-green-500'
+                    }`}
+                    style={{
+                      width: `${Math.min(alertData.currentCashRatio, 100)}%`,
+                    }}
+                  ></div>
+                </div>
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>0%</span>
+                  <span className="font-medium">
+                    목표: {alertData.targetCashRatio}%
+                  </span>
+                  <span>100%</span>
+                </div>
+              </div>
+
+              {/* 조정 필요 금액 */}
+              <div className="bg-gray-50 rounded-lg p-3">
+                <h5 className="text-sm font-medium text-gray-900 mb-2">
+                  조정 필요 금액
+                </h5>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center">
+                    {getActionIcon(alertData.stockAdjustment)}
+                    <div className="ml-2">
+                      <div className="text-sm font-medium text-gray-900">
+                        주식
+                      </div>
+                      <div
+                        className={`text-sm ${
+                          alertData.stockAdjustment > 0
+                            ? 'text-blue-600'
+                            : 'text-red-600'
+                        }`}
+                      >
+                        {alertData.stockAdjustment > 0 ? '+' : ''}₩
+                        {alertData.stockAdjustment?.toLocaleString()}
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-sm text-gray-600 mt-1">
-                    {rec.recommended_shares && rec.action !== 'HOLD'
-                      ? `${Math.abs(rec.recommended_shares)}주`
-                      : '-'}
+                  <div className="flex items-center">
+                    {getActionIcon(alertData.cashAdjustment)}
+                    <div className="ml-2">
+                      <div className="text-sm font-medium text-gray-900">
+                        현금
+                      </div>
+                      <div
+                        className={`text-sm ${
+                          alertData.cashAdjustment > 0
+                            ? 'text-blue-600'
+                            : 'text-red-600'
+                        }`}
+                      >
+                        {alertData.cashAdjustment > 0 ? '+' : ''}₩
+                        {alertData.cashAdjustment?.toLocaleString()}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-            ))}
+            </div>
           </div>
         )}
       </div>

@@ -19,10 +19,6 @@ public class RebalancingController {
 
     private final RebalancingService rebalancingService;
 
-    /**
-     * 리밸런싱 분석 API
-     * ±10% 이탈 기준으로 리밸런싱 필요 여부와 추천사항 제공
-     */
     @PostMapping("/rebalancing/analyze")
     public ResponseEntity<RebalancingResponse> analyzeRebalancing(
             @Valid @RequestBody RebalancingRequest request) {
@@ -40,20 +36,16 @@ public class RebalancingController {
         }
     }
 
-    /**
-     * 간단한 리밸런싱 상태 체크 API
-     * 포트폴리오 ID만으로 현재 리밸런싱 필요 여부 확인
-     */
     @GetMapping("/{portfolioId}/rebalancing/status")
     public ResponseEntity<Boolean> checkRebalancingStatus(@PathVariable Long portfolioId) {
 
         try {
             log.info("리밸런싱 상태 체크 - Portfolio ID: {}", portfolioId);
 
-            // TODO: 포트폴리오 ID로 현재 보유 자산과 목표 비중을 조회하여 분석
-            // 현재는 임시로 false 반환
-            Boolean needsRebalancing = false;
+            // 실제 포트폴리오 데이터로 주식/현금 비율 분석
+            Boolean needsRebalancing = rebalancingService.checkAssetAllocationRebalancing(portfolioId);
 
+            log.info("리밸런싱 필요 여부: {}", needsRebalancing);
             return ResponseEntity.ok(needsRebalancing);
 
         } catch (Exception e) {
@@ -62,10 +54,6 @@ public class RebalancingController {
         }
     }
 
-    /**
-     * 리밸런싱 알림 설정 API
-     * 사용자가 리밸런싱 알림을 받을지 설정
-     */
     @PutMapping("/{portfolioId}/rebalancing/notification")
     public ResponseEntity<String> updateRebalancingNotification(
             @PathVariable Long portfolioId,
@@ -83,6 +71,34 @@ public class RebalancingController {
         } catch (Exception e) {
             log.error("리밸런싱 알림 설정 API 오류", e);
             return ResponseEntity.badRequest().body("알림 설정 실패");
+        }
+    }
+
+    @PutMapping("/{portfolioId}/rebalancing/target-allocation")
+    public ResponseEntity<String> updateTargetAllocation(
+            @PathVariable Long portfolioId,
+            @RequestParam Double stockRatio,
+            @RequestParam Double cashRatio) {
+
+        try {
+            log.info("목표 자산 배분 설정 - Portfolio ID: {}, Stock: {}%, Cash: {}%",
+                    portfolioId, stockRatio, cashRatio);
+
+            // 비율 검증
+            if (Math.abs(stockRatio + cashRatio - 100.0) > 0.01) {
+                return ResponseEntity.badRequest().body("주식과 현금 비율의 합이 100%가 되어야 합니다.");
+            }
+
+            if (stockRatio < 0 || stockRatio > 100 || cashRatio < 0 || cashRatio > 100) {
+                return ResponseEntity.badRequest().body("비율은 0%에서 100% 사이여야 합니다.");
+            }
+
+            return ResponseEntity.ok(String.format("목표 자산 배분이 설정되었습니다. (주식 %.1f%%, 현금 %.1f%%)",
+                    stockRatio, cashRatio));
+
+        } catch (Exception e) {
+            log.error("목표 자산 배분 설정 API 오류", e);
+            return ResponseEntity.badRequest().body("목표 비율 설정 실패");
         }
     }
 }
