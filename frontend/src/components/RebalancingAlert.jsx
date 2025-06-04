@@ -21,7 +21,7 @@ const RebalancingAlert = ({ portfolioId, onViewDetails }) => {
       console.log(`자산 배분 분석 요청 - Portfolio ID: ${portfolioId}`);
 
       // 실제 자산 배분 분석 API 호출 (추후 구현)
-      // const response = await api.get(`/portfolio/${portfolioId}/rebalancing/asset-allocation`);
+      // const response = await api.get(`/portfolios/${portfolioId}/rebalancing/asset-allocation`);
 
       // 현재는 목적에 맞는 예시 데이터 사용
       const mockAnalysis = {
@@ -53,7 +53,7 @@ const RebalancingAlert = ({ portfolioId, onViewDetails }) => {
 
       // 1. 리밸런싱 상태 체크
       const statusResponse = await api.get(
-        `/portfolio/${portfolioId}/rebalancing/status`
+        `/portfolios/${portfolioId}/rebalancing/status`
       );
       const needsRebalancing = statusResponse.data;
 
