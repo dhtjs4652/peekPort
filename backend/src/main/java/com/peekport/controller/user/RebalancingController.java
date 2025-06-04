@@ -6,12 +6,14 @@ import com.peekport.service.RebalancingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/api/portfolio")
+@RequestMapping("/api/portfolios")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 @Slf4j
@@ -37,7 +39,7 @@ public class RebalancingController {
     }
 
     @GetMapping("/{portfolioId}/rebalancing/status")
-    public ResponseEntity<Boolean> checkRebalancingStatus(@PathVariable Long portfolioId) {
+    public ResponseEntity<Boolean> checkRebalancingStatus(@PathVariable Long portfolioId, @AuthenticationPrincipal UserDetails userDetails) {
 
         try {
             log.info("리밸런싱 상태 체크 - Portfolio ID: {}", portfolioId);
