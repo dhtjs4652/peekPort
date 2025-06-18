@@ -32,8 +32,11 @@ const PublicNavigation = () => {
             </Link>
           </div>
 
-          {/* 가운데 네비게이션 메뉴 (데스크톱) */}
-          <div className="hidden md:flex items-center space-x-1">
+          {/* 빈 공간 (중앙 여백) */}
+          <div className="flex-1"></div>
+
+          {/* 오른쪽 네비게이션 메뉴 (데스크톱) */}
+          <div className="hidden md:flex items-center space-x-3">
             <Link
               to="/"
               className={`flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors
@@ -47,24 +50,20 @@ const PublicNavigation = () => {
               <span>홈</span>
             </Link>
 
-            {isLoggedIn && (
-              <Link
-                to="/dashboard"
-                className="flex items-center px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors"
-              >
-                <span>대시보드</span>
-              </Link>
-            )}
-          </div>
-
-          {/* 오른쪽 로그인/회원가입 버튼 (데스크톱) */}
-          <div className="hidden md:flex items-center space-x-3">
             {isLoggedIn ? (
-              <div className="flex items-center space-x-3">
+              <>
+                <Link
+                  to="/dashboard"
+                  className="flex items-center px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors"
+                >
+                  <span>대시보드</span>
+                </Link>
+
                 <div className="flex items-center text-sm text-gray-600">
                   <User className="h-4 w-4 mr-1" />
                   <span>환영합니다!</span>
                 </div>
+
                 <button
                   onClick={handleLogout}
                   className="flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
@@ -72,7 +71,7 @@ const PublicNavigation = () => {
                   <LogOut className="h-4 w-4 mr-2" />
                   <span>로그아웃</span>
                 </button>
-              </div>
+              </>
             ) : (
               <>
                 <Link

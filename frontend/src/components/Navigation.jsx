@@ -1,7 +1,16 @@
 // components/Navigation.jsx
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Home, PieChart, BarChart2, Menu, X, LogOut } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import {
+  Home,
+  PieChart,
+  BarChart2,
+  Menu,
+  X,
+  LogOut,
+  User,
+  ArrowLeft,
+} from 'lucide-react';
 import Logo from '../assets/PeekPort_logo.png';
 import { logout } from '../utils/authUtils';
 
@@ -22,6 +31,43 @@ const Navigation = ({ currentPage, onPageChange }) => {
 
   return (
     <>
+      {/* 상단 헤더 바 (데스크톱 - 사이드바와 함께 사용) */}
+      <div className="hidden md:block fixed top-0 left-64 right-0 h-16 bg-white border-b border-gray-200 z-30">
+        <div className="flex items-center justify-between h-full px-6">
+          {/* 현재 페이지 제목 */}
+          <div className="flex items-center">
+            <h1 className="text-xl font-semibold text-gray-900">
+              {menuItems.find((item) => item.id === currentPage)?.label ||
+                '대시보드'}
+            </h1>
+          </div>
+
+          {/* 오른쪽 사용자 메뉴 */}
+          <div className="flex items-center space-x-4">
+            <Link
+              to="/"
+              className="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              <span>홈으로</span>
+            </Link>
+
+            <div className="flex items-center text-sm text-gray-600">
+              <User className="h-4 w-4 mr-2" />
+              <span>사용자님</span>
+            </div>
+
+            <button
+              onClick={handleLogout}
+              className="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:text-red-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              <span>로그아웃</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* 데스크톱 사이드바 */}
       <div className="hidden md:block fixed left-0 top-0 h-screen w-64 bg-white border-r shadow-md z-20">
         {/* 로고 영역 */}
@@ -68,7 +114,7 @@ const Navigation = ({ currentPage, onPageChange }) => {
           </div>
         </div>
 
-        {/* 사용자 정보 */}
+        {/* 사용자 정보 (기존 유지) */}
         <div className="absolute bottom-0 left-0 right-0 p-5 border-t border-gray-100">
           <div className="flex items-center justify-between">
             <div className="flex items-center text-sm text-gray-500">
@@ -81,7 +127,6 @@ const Navigation = ({ currentPage, onPageChange }) => {
               </div>
             </div>
 
-            {/* 로그아웃 버튼 추가 */}
             <button
               onClick={handleLogout}
               className="text-gray-500 hover:text-red-500 transition-colors"
@@ -103,10 +148,20 @@ const Navigation = ({ currentPage, onPageChange }) => {
         />
 
         <div className="flex items-center space-x-2">
-          {/* 로그아웃 버튼 추가 */}
+          {/* 홈으로 버튼 */}
+          <Link
+            to="/"
+            className="w-10 h-10 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100"
+            title="홈으로"
+          >
+            <ArrowLeft size={20} />
+          </Link>
+
+          {/* 로그아웃 버튼 */}
           <button
             onClick={handleLogout}
-            className="w-10 h-10 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100"
+            className="w-10 h-10 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-red-500"
+            title="로그아웃"
           >
             <LogOut size={20} />
           </button>
@@ -120,8 +175,73 @@ const Navigation = ({ currentPage, onPageChange }) => {
         </div>
       </div>
 
-      {/* 모바일 메뉴 (나머지 코드는 동일) */}
-      {/* ... */}
+      {/* 모바일 메뉴 */}
+      {isMobileMenuOpen && (
+        <div className="block md:hidden fixed top-16 left-0 right-0 bg-white border-b border-gray-200 shadow-lg z-30">
+          <div className="p-4 space-y-2">
+            {/* 홈으로 링크 */}
+            <Link
+              to="/"
+              className="flex items-center px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              <ArrowLeft className="h-4 w-4 mr-3" />
+              <span>홈으로</span>
+            </Link>
+
+            {/* 메뉴 아이템들 */}
+            {menuItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = currentPage === item.id;
+
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    onPageChange(item.id);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg transition-colors
+                    ${
+                      isActive
+                        ? 'bg-blue-50 text-blue-600'
+                        : 'text-gray-600 hover:bg-gray-50'
+                    }
+                  `}
+                >
+                  <Icon
+                    className={`h-4 w-4 mr-3 ${
+                      isActive ? 'text-blue-600' : 'text-gray-500'
+                    }`}
+                  />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+
+            {/* 구분선 */}
+            <div className="border-t border-gray-200 my-3"></div>
+
+            {/* 사용자 정보 */}
+            <div className="flex items-center px-4 py-3 text-sm text-gray-600">
+              <User className="h-4 w-4 mr-3" />
+              <span>사용자님으로 로그인됨</span>
+            </div>
+
+            {/* 로그아웃 버튼 */}
+            <button
+              onClick={() => {
+                handleLogout();
+                setIsMobileMenuOpen(false);
+              }}
+              className="flex items-center w-full px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            >
+              <LogOut className="h-4 w-4 mr-3" />
+              <span>로그아웃</span>
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 };
