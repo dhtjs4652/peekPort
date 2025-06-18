@@ -89,4 +89,16 @@ public class PortfolioController {
         return ResponseEntity.ok(response);
     }
 
+    // 포트폴리오 삭제 API 추가
+    @DeleteMapping("/{portfolioId}")
+    public ResponseEntity<Void> deletePortfolio(
+            @PathVariable Long portfolioId,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) throws AccessDeniedException {
+        User user = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        portfolioService.deletePortfolio(portfolioId, user);
+        return ResponseEntity.noContent().build();
+    }
 }

@@ -110,4 +110,12 @@ public class PortfolioService {
         );
     }
 
+    // 포트폴리오 삭제 메서드 추가
+    public void deletePortfolio(Long portfolioId, User user) throws AccessDeniedException {
+        GoalAccount portfolio = goalAccountRepository.findByIdAndUserId(portfolioId, user.getId())
+                .orElseThrow(() -> new AccessDeniedException("해당 포트폴리오에 접근할 수 없습니다."));
+
+        // 포트폴리오와 관련된 모든 자산 데이터도 함께 삭제됨 (cascade 설정에 따라)
+        goalAccountRepository.delete(portfolio);
+    }
 }
