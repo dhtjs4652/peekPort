@@ -1,16 +1,7 @@
 // components/Navigation.jsx
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import {
-  Home,
-  PieChart,
-  BarChart2,
-  Menu,
-  X,
-  LogOut,
-  User,
-  ArrowLeft,
-} from 'lucide-react';
+import { Home, PieChart, Menu, X, LogOut, User, ArrowLeft } from 'lucide-react';
 import Logo from '../assets/PeekPort_logo.png';
 import { logout } from '../utils/authUtils';
 
@@ -26,7 +17,6 @@ const Navigation = ({ currentPage, onPageChange }) => {
   const menuItems = [
     { id: 'dashboard', label: '자산 현황', icon: Home },
     { id: 'portfolio', label: '포트폴리오 관리', icon: PieChart },
-    { id: 'analysis', label: '포트폴리오 분석', icon: BarChart2 },
   ];
 
   return (
