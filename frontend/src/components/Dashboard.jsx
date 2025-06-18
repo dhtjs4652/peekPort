@@ -1063,8 +1063,40 @@ const Dashboard = () => {
 
         {/* 오른쪽 사이드 영역 (3칸) */}
         <div className="lg:col-span-3 flex flex-col h-full">
+          {/* 포트폴리오 건강도 카드 - 최상단 배치 */}
+          <div
+            className="bg-white rounded-xl p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow border-2 hover:border-blue-200 mb-6"
+            onClick={() => setShowHealthModal(true)}
+          >
+            <div className="text-center">
+              <div className="flex items-center justify-center mb-2">
+                <AlertCircle className="h-5 w-5 mr-2 text-blue-500" />
+                <h3 className="text-sm font-semibold text-gray-900">
+                  포트폴리오 건강도
+                </h3>
+              </div>
+
+              <div className="mb-3">
+                <div className="text-3xl font-bold text-green-600 mb-1">
+                  78점
+                </div>
+                <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                  우수
+                </span>
+              </div>
+
+              <div className="text-xs text-gray-500 mb-3">
+                평균보다 높은 수준의 건강한 포트폴리오
+              </div>
+
+              <div className="text-xs text-blue-600 font-medium flex items-center justify-center">
+                👆 클릭하여 상세보기
+              </div>
+            </div>
+          </div>
+
           {/* 투자 기간별 요약 카드들 */}
-          <div className="grid grid-cols-2 lg:grid-cols-1 gap-4 mb-6">
+          <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
             {/* 단기 투자 */}
             <div className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-blue-500">
               <div className="flex items-center justify-between mb-2">
@@ -1163,38 +1195,6 @@ const Dashboard = () => {
                   %
                 </strong>
               </p>
-            </div>
-          </div>
-
-          {/* 포트폴리오 건강도 카드 - 축약 버전 */}
-          <div
-            className="bg-white rounded-xl p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow border-2 hover:border-blue-200"
-            onClick={() => setShowHealthModal(true)}
-          >
-            <div className="text-center">
-              <div className="flex items-center justify-center mb-2">
-                <AlertCircle className="h-5 w-5 mr-2 text-blue-500" />
-                <h3 className="text-sm font-semibold text-gray-900">
-                  포트폴리오 건강도
-                </h3>
-              </div>
-
-              <div className="mb-3">
-                <div className="text-3xl font-bold text-green-600 mb-1">
-                  78점
-                </div>
-                <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-                  우수
-                </span>
-              </div>
-
-              <div className="text-xs text-gray-500 mb-3">
-                평균보다 높은 수준의 건강한 포트폴리오
-              </div>
-
-              <div className="text-xs text-blue-600 font-medium flex items-center justify-center">
-                👆 클릭하여 상세보기
-              </div>
             </div>
           </div>
         </div>
