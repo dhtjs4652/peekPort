@@ -474,7 +474,6 @@ const PortfolioManagement = () => {
   return (
     <div>
       {' '}
-      className="max-w-7xl mx-auto p-6 bg-gray-50 min-h-screen"
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
           포트폴리오 관리
