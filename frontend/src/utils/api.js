@@ -11,7 +11,7 @@ const api = axios.create({
 // 요청 인터셉터 - 토큰 추가
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('jwt');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }

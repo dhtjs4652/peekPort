@@ -7,6 +7,8 @@ import {
   Calendar,
   Edit2,
   Check,
+  PieChart as PieChartIcon,
+  DollarSign,
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Sector } from 'recharts';
 import { getToken } from '../utils/authUtils'; // authUtils에서 getToken 가져오기
@@ -208,6 +210,11 @@ const Dashboard = () => {
       value: 1,
       unit: 'year',
     },
+    // 자산 배분 목표 비중 추가
+    targetAllocation: {
+      stock: 70,
+      cash: 30,
+    },
   });
 
   // 로딩 상태 추가
@@ -228,6 +235,7 @@ const Dashboard = () => {
   const [editedGoal, setEditedGoal] = useState({
     amount: portfolioData.targetAmount,
     period: { ...portfolioData.goalPeriod },
+    allocation: { ...portfolioData.targetAllocation },
   });
 
   // 목표 기간 옵션
@@ -245,6 +253,35 @@ const Dashboard = () => {
   const handleViewRebalancingDetails = (rebalancingData) => {
     setRebalancingDetailData(rebalancingData);
     setShowRebalancingDetailModal(true);
+  };
+
+  // 현재 자산 배분 비율 계산
+  const getCurrentAllocation = () => {
+    const totalAssets = portfolioData.currentAmount;
+    if (totalAssets === 0) return { stock: 0, cash: 0 };
+
+    const stockValue = totalAssets - portfolioData.cash;
+    const stockRatio = (stockValue / totalAssets) * 100;
+    const cashRatio = (portfolioData.cash / totalAssets) * 100;
+
+    return {
+      stock: stockRatio,
+      cash: cashRatio,
+    };
+  };
+
+  const currentAllocation = getCurrentAllocation();
+
+  // 자산 배분 슬라이더 핸들러
+  const handleAllocationChange = (stockPercentage) => {
+    const cashPercentage = 100 - stockPercentage;
+    setEditedGoal({
+      ...editedGoal,
+      allocation: {
+        stock: stockPercentage,
+        cash: cashPercentage,
+      },
+    });
   };
 
   // 현금 데이터
@@ -364,12 +401,21 @@ const Dashboard = () => {
           cash: totalCash,
           yesterdayAmount: yesterdayAmount,
           dailyReturn: parseFloat(dailyReturn.toFixed(2)),
+          // 기본 자산 배분 비율 (나중에 API에서 가져올 수 있음)
+          targetAllocation: {
+            stock: firstPortfolio.targetStockRatio || 70,
+            cash: firstPortfolio.targetCashRatio || 30,
+          },
         }));
 
         // editedGoal도 업데이트
         setEditedGoal((prev) => ({
           ...prev,
           amount: firstPortfolio.targetAmount || 100000000,
+          allocation: {
+            stock: firstPortfolio.targetStockRatio || 70,
+            cash: firstPortfolio.targetCashRatio || 30,
+          },
         }));
       }
     } catch (err) {
@@ -538,6 +584,8 @@ const Dashboard = () => {
           },
           body: JSON.stringify({
             targetAmount: editedGoal.amount,
+            targetStockRatio: editedGoal.allocation.stock,
+            targetCashRatio: editedGoal.allocation.cash,
           }),
         }
       );
@@ -551,27 +599,33 @@ const Dashboard = () => {
         ...prev,
         targetAmount: editedGoal.amount,
         goalPeriod: { ...editedGoal.period }, // 기간은 로컬에서만 관리
+        targetAllocation: { ...editedGoal.allocation },
       }));
 
       setIsEditingGoal(false);
 
       // 성공 메시지
-      console.log('목표 금액이 성공적으로 업데이트되었습니다.');
+      console.log('목표 설정이 성공적으로 업데이트되었습니다.');
     } catch (err) {
-      console.error('목표 금액 업데이트 실패:', err);
-      setError('목표 금액 업데이트에 실패했습니다: ' + err.message);
+      console.error('목표 설정 업데이트 실패:', err);
+      setError('목표 설정 업데이트에 실패했습니다: ' + err.message);
       // 에러 발생시 편집 모드 유지
     }
-  }, [editedGoal.amount, editedGoal.period, primaryPortfolioId, portfolios]);
+  }, [editedGoal, primaryPortfolioId, portfolios]);
 
   // 목표 편집 취소 핸들러
   const handleEditCancel = useCallback(() => {
     setEditedGoal({
       amount: portfolioData.targetAmount,
       period: { ...portfolioData.goalPeriod },
+      allocation: { ...portfolioData.targetAllocation },
     });
     setIsEditingGoal(false);
-  }, [portfolioData.targetAmount, portfolioData.goalPeriod]);
+  }, [
+    portfolioData.targetAmount,
+    portfolioData.goalPeriod,
+    portfolioData.targetAllocation,
+  ]);
 
   // 기간 단위에 따른 표시 텍스트
   const getPeriodText = useCallback((period) => {
@@ -697,25 +751,40 @@ const Dashboard = () => {
                   suffix="원"
                 />
               </p>
+              {/* 현재 자산 배분 표시 */}
+              <div className="mt-2 text-sm text-gray-600">
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center">
+                    <PieChartIcon className="w-4 h-4 mr-1 text-blue-500" />
+                    <span>주식 {currentAllocation.stock.toFixed(1)}%</span>
+                  </div>
+                  <div className="flex items-center">
+                    <DollarSign className="w-4 h-4 mr-1 text-orange-500" />
+                    <span>현금 {currentAllocation.cash.toFixed(1)}%</span>
+                  </div>
+                </div>
+              </div>
             </div>
             <div className="text-right">
               <div className="flex items-center justify-end">
-                <h3 className="text-md font-medium text-gray-700">목표 금액</h3>
+                <h3 className="text-md font-medium text-gray-700">투자 목표</h3>
                 <button
                   onClick={() => setIsEditingGoal(!isEditingGoal)}
                   className="ml-2 text-blue-500 hover:text-blue-700 transition-colors"
+                  type="button"
                 >
                   <Edit2 className="h-4 w-4" />
                 </button>
               </div>
 
               {isEditingGoal ? (
-                <div className="mt-2 p-3 bg-blue-50 rounded-lg">
-                  <div className="flex items-end mb-3 space-x-2">
-                    <div>
-                      <label className="block text-xs text-gray-500 mb-1">
-                        금액
-                      </label>
+                <div className="mt-2 p-4 bg-blue-50 rounded-lg min-w-80">
+                  {/* 목표 금액 */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      목표 금액
+                    </label>
+                    <div className="flex items-center space-x-2">
                       <input
                         type="number"
                         value={editedGoal.amount}
@@ -727,11 +796,16 @@ const Dashboard = () => {
                         }
                         className="p-2 border rounded-md w-40 focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
                       />
+                      <span className="text-sm text-gray-500">원</span>
                     </div>
-                    <div>
-                      <label className="block text-xs text-gray-500 mb-1">
-                        기간 값
-                      </label>
+                  </div>
+
+                  {/* 달성 기간 */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      달성 기간
+                    </label>
+                    <div className="flex items-center space-x-2">
                       <input
                         type="number"
                         value={editedGoal.period.value}
@@ -747,11 +821,6 @@ const Dashboard = () => {
                         min="1"
                         className="p-2 border rounded-md w-20 focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
                       />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-500 mb-1">
-                        기간 단위
-                      </label>
                       <select
                         value={editedGoal.period.unit}
                         onChange={(e) =>
@@ -773,16 +842,121 @@ const Dashboard = () => {
                       </select>
                     </div>
                   </div>
-                  <div className="flex justify-end space-x-2">
+
+                  {/* 자산 배분 목표 */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      자산 배분 목표
+                    </label>
+                    <div className="space-y-3">
+                      {/* 슬라이더 */}
+                      <div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={editedGoal.allocation.stock}
+                          onChange={(e) =>
+                            handleAllocationChange(Number(e.target.value))
+                          }
+                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                          style={{
+                            background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${editedGoal.allocation.stock}%, #f3f4f6 ${editedGoal.allocation.stock}%, #f3f4f6 100%)`,
+                          }}
+                        />
+                      </div>
+
+                      {/* 비율 표시 */}
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 bg-blue-500 rounded"></div>
+                          <span className="text-sm font-medium">주식</span>
+                          <input
+                            type="number"
+                            value={editedGoal.allocation.stock}
+                            onChange={(e) => {
+                              const value = Math.max(
+                                0,
+                                Math.min(100, Number(e.target.value))
+                              );
+                              handleAllocationChange(value);
+                            }}
+                            min="0"
+                            max="100"
+                            className="w-16 p-1 text-sm border rounded focus:ring-1 focus:ring-blue-300"
+                          />
+                          <span className="text-sm">%</span>
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 bg-orange-500 rounded"></div>
+                          <span className="text-sm font-medium">현금</span>
+                          <input
+                            type="number"
+                            value={editedGoal.allocation.cash}
+                            onChange={(e) => {
+                              const value = Math.max(
+                                0,
+                                Math.min(100, Number(e.target.value))
+                              );
+                              handleAllocationChange(100 - value);
+                            }}
+                            min="0"
+                            max="100"
+                            className="w-16 p-1 text-sm border rounded focus:ring-1 focus:ring-blue-300"
+                          />
+                          <span className="text-sm">%</span>
+                        </div>
+                      </div>
+
+                      {/* 현재 vs 목표 비교 */}
+                      <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                        <div className="text-xs text-gray-600 mb-2">
+                          현재 vs 목표
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs text-gray-700">주식</span>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-xs text-gray-600">
+                                {currentAllocation.stock.toFixed(1)}%
+                              </span>
+                              <span className="text-xs text-gray-400">→</span>
+                              <span className="text-xs font-medium text-blue-600">
+                                {editedGoal.allocation.stock}%
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs text-gray-700">현금</span>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-xs text-gray-600">
+                                {currentAllocation.cash.toFixed(1)}%
+                              </span>
+                              <span className="text-xs text-gray-400">→</span>
+                              <span className="text-xs font-medium text-orange-600">
+                                {editedGoal.allocation.cash}%
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 버튼 */}
+                  <div className="flex justify-end space-x-2 pt-2">
                     <button
                       onClick={handleEditCancel}
-                      className="px-3 py-1 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200"
+                      className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                      type="button"
                     >
                       취소
                     </button>
                     <button
                       onClick={handleGoalSubmit}
-                      className="px-3 py-1 text-sm text-white bg-blue-500 rounded-md hover:bg-blue-600 flex items-center"
+                      className="px-3 py-2 text-sm text-white bg-blue-500 rounded-md hover:bg-blue-600 flex items-center transition-colors"
+                      type="button"
                     >
                       <Check className="h-3 w-3 mr-1" />
                       저장
@@ -790,16 +964,33 @@ const Dashboard = () => {
                   </div>
                 </div>
               ) : (
-                <div className="flex items-end justify-end">
-                  <p className="text-xl font-bold">
-                    <AnimatedNumber
-                      value={portfolioData.targetAmount}
-                      suffix="원"
-                    />
-                  </p>
-                  <span className="text-sm text-gray-500 ml-2">
-                    / {getPeriodText(portfolioData.goalPeriod)}
-                  </span>
+                <div>
+                  <div className="flex items-end justify-end">
+                    <p className="text-xl font-bold">
+                      <AnimatedNumber
+                        value={portfolioData.targetAmount}
+                        suffix="원"
+                      />
+                    </p>
+                    <span className="text-sm text-gray-500 ml-2">
+                      / {getPeriodText(portfolioData.goalPeriod)}
+                    </span>
+                  </div>
+                  {/* 목표 자산 배분 표시 */}
+                  <div className="mt-2 text-sm text-gray-600">
+                    <div className="flex items-center justify-end space-x-4">
+                      <div className="flex items-center">
+                        <span className="text-xs">
+                          목표: 주식 {portfolioData.targetAllocation.stock}%
+                        </span>
+                      </div>
+                      <div className="flex items-center">
+                        <span className="text-xs">
+                          현금 {portfolioData.targetAllocation.cash}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -837,6 +1028,7 @@ const Dashboard = () => {
           <button
             onClick={() => setShowDetailedChart(!showDetailedChart)}
             className="flex items-center text-sm text-blue-600 hover:text-blue-800 transition-colors"
+            type="button"
           >
             {showDetailedChart ? (
               <>

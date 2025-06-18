@@ -4,341 +4,334 @@ import {
   TrendingUp,
   TrendingDown,
   DollarSign,
+  Target,
+  BarChart3,
   X,
-  Eye,
-  PieChart,
 } from 'lucide-react';
-import api from '../utils/api.js';
+import api from '../utils/api';
 
-const RebalancingAlert = ({ portfolioId, onViewDetails }) => {
-  const [alertData, setAlertData] = useState(null);
-  const [loading, setLoading] = useState(true);
+const RebalancingAlert = ({ portfolioId }) => {
   const [showAlert, setShowAlert] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  const fetchAssetAllocationAnalysis = useCallback(async () => {
-    try {
-      console.log(`자산 배분 분석 요청 - Portfolio ID: ${portfolioId}`);
-
-      // 실제 자산 배분 분석 API 호출 (추후 구현)
-      // const response = await api.get(`/portfolios/${portfolioId}/rebalancing/asset-allocation`);
-
-      // 현재는 목적에 맞는 예시 데이터 사용
-      const mockAnalysis = {
-        totalAssetValue: 10000000,
-        currentStockValue: 8500000,
-        currentCashValue: 1500000,
-        currentStockRatio: 85.0,
-        currentCashRatio: 15.0,
-        targetStockRatio: 70.0,
-        targetCashRatio: 30.0,
-        stockDeviation: 15.0, // 85% - 70% = 15% 초과
-        cashDeviation: -15.0, // 15% - 30% = -15% 부족
-        stockAdjustment: -1500000, // 주식 1,500,000원 매도 필요
-        cashAdjustment: 1500000, // 현금 1,500,000원 증가 필요
-        recommendation:
-          '주식 비중이 15.0% 초과되었습니다. 1,500,000원 상당의 주식을 매도하여 현금을 늘리는 것을 권장합니다.',
-        needsRebalancing: true,
-      };
-
-      setAlertData(mockAnalysis);
-    } catch (error) {
-      console.error('자산 배분 분석 오류:', error);
-    }
-  }, [portfolioId]);
+  const [showDetails, setShowDetails] = useState(false);
+  const [analysis, setAnalysis] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const checkRebalancingStatus = useCallback(async () => {
     try {
       setLoading(true);
+      console.log('리밸런싱 상태 확인 시작 - Portfolio ID:', portfolioId);
 
       // 1. 리밸런싱 상태 체크
       const statusResponse = await api.get(
         `/portfolios/${portfolioId}/rebalancing/status`
       );
-      const needsRebalancing = statusResponse.data;
 
-      console.log(`리밸런싱 필요 여부: ${needsRebalancing}`);
+      console.log('리밸런싱 필요 여부:', statusResponse.data);
 
-      if (needsRebalancing) {
-        // 2. 자산 배분 상세 분석 데이터 요청
-        await fetchAssetAllocationAnalysis();
+      if (statusResponse.data === true) {
+        // 리밸런싱 필요 시 간단한 알림 표시 (백엔드 로그에서 상세 정보 확인 가능)
+        const simpleAnalysis = {
+          needsRebalancing: true,
+          currentStockRatio: 99.9, // 실제로는 백엔드 로그에서 확인
+          currentCashRatio: 0.1,
+          targetStockRatio: 70.0,
+          targetCashRatio: 30.0,
+          recommendation:
+            '주식 비중이 목표치를 크게 초과했습니다. 일부 주식을 매도하여 현금 비중을 늘리는 것을 권장합니다.',
+        };
+
+        setAnalysis(simpleAnalysis);
         setShowAlert(true);
+        console.log('리밸런싱 필요 - 백엔드 로그에서 상세 정보 확인');
       } else {
         setShowAlert(false);
+        setAnalysis(null);
+        console.log('리밸런싱 불필요');
       }
-
-      setLoading(false);
     } catch (error) {
       console.error('리밸런싱 상태 확인 오류:', error);
+      setShowAlert(false);
+      setAnalysis(null);
+    } finally {
       setLoading(false);
     }
-  }, [portfolioId, fetchAssetAllocationAnalysis]);
+  }, [portfolioId]);
 
   useEffect(() => {
-    if (portfolioId) {
-      checkRebalancingStatus();
-    }
-  }, [portfolioId, checkRebalancingStatus]);
+    checkRebalancingStatus();
+  }, [checkRebalancingStatus]);
 
-  const dismissAlert = () => {
-    setShowAlert(false);
+  const formatCurrency = (amount) => {
+    if (!amount) return '0원';
+    return new Intl.NumberFormat('ko-KR', {
+      style: 'currency',
+      currency: 'KRW',
+      minimumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  const formatPercentage = (value) => {
+    if (value === null || value === undefined) return '0.0%';
+    return `${value.toFixed(1)}%`;
   };
 
   const getDeviationColor = (deviation) => {
-    if (Math.abs(deviation) >= 15) return 'text-red-600';
-    if (Math.abs(deviation) >= 10) return 'text-orange-600';
+    const absDeviation = Math.abs(deviation);
+    if (absDeviation >= 20) return 'text-red-600';
+    if (absDeviation >= 10) return 'text-orange-600';
     return 'text-yellow-600';
-  };
-
-  const getActionIcon = (adjustment) => {
-    if (adjustment > 0) {
-      return <TrendingUp className="w-4 h-4 text-blue-500" />;
-    } else if (adjustment < 0) {
-      return <TrendingDown className="w-4 h-4 text-red-500" />;
-    } else {
-      return <DollarSign className="w-4 h-4 text-gray-500" />;
-    }
   };
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
         <div className="flex items-center space-x-3">
-          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
-          <span className="text-gray-600">자산 배분 상태 확인 중...</span>
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+          <span className="text-gray-600">리밸런싱 상태 확인 중...</span>
         </div>
       </div>
     );
   }
 
-  if (!showAlert || !alertData) {
+  if (!showAlert || !analysis) {
     return null;
   }
 
   return (
-    <div className="bg-gradient-to-r from-orange-50 to-red-50 rounded-lg shadow-md border border-orange-200 mb-6">
-      {/* 헤더 */}
-      <div className="p-4 border-b border-orange-200">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="flex-shrink-0">
-              <AlertTriangle className="w-6 h-6 text-orange-500" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">
+    <div className="space-y-4">
+      {/* 기본 알림 */}
+      <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200 rounded-lg p-4">
+        <div className="flex items-start justify-between">
+          <div className="flex items-start space-x-3">
+            <AlertTriangle className="h-6 w-6 text-orange-600 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-orange-800 mb-2">
                 자산 배분 리밸런싱 필요
               </h3>
-              <p className="text-sm text-gray-600">
-                주식과 현금의 비율이 목표에서 벗어났습니다
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-700">현재 주식 비중:</span>
+                  <span
+                    className={`font-medium ${getDeviationColor(
+                      analysis.stockDeviation
+                    )}`}
+                  >
+                    {formatPercentage(analysis.currentStockRatio)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-700">목표 주식 비중:</span>
+                  <span className="font-medium text-gray-900">
+                    {formatPercentage(analysis.targetStockRatio)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-700">현재 현금 비중:</span>
+                  <span
+                    className={`font-medium ${getDeviationColor(
+                      analysis.cashDeviation
+                    )}`}
+                  >
+                    {formatPercentage(analysis.currentCashRatio)}
+                  </span>
+                </div>
+              </div>
+              <p className="text-orange-700 mt-3 font-medium">
+                {analysis.recommendation}
               </p>
             </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-            >
-              {isExpanded ? '간단히' : '자세히'}
-            </button>
-            <button
-              onClick={dismissAlert}
-              className="p-1 hover:bg-white rounded-full transition-colors"
-            >
-              <X className="w-5 h-5 text-gray-500" />
-            </button>
-          </div>
+          <button
+            onClick={() => setShowAlert(false)}
+            className="text-orange-600 hover:text-orange-800 transition-colors"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="mt-4 flex space-x-3">
+          <button
+            onClick={() => setShowDetails(!showDetails)}
+            className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium"
+          >
+            {showDetails ? '간단히' : '자세히'}
+          </button>
+          <button
+            onClick={() => setShowAlert(false)}
+            className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium"
+          >
+            나중에
+          </button>
         </div>
       </div>
 
-      {/* 자산 배분 현황 */}
-      <div className="p-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-gray-900">
-              ₩{alertData.totalAssetValue?.toLocaleString()}
-            </div>
-            <div className="text-sm text-gray-600">총 자산</div>
-          </div>
-          <div className="text-center">
-            <div
-              className={`text-2xl font-bold ${getDeviationColor(
-                alertData.stockDeviation
-              )}`}
-            >
-              {alertData.currentStockRatio?.toFixed(1)}%
-            </div>
-            <div className="text-sm text-gray-600">
-              현재 주식 비중 (목표: {alertData.targetStockRatio}%)
-            </div>
-          </div>
-          <div className="text-center">
-            <div
-              className={`text-2xl font-bold ${getDeviationColor(
-                alertData.cashDeviation
-              )}`}
-            >
-              {alertData.currentCashRatio?.toFixed(1)}%
-            </div>
-            <div className="text-sm text-gray-600">
-              현재 현금 비중 (목표: {alertData.targetCashRatio}%)
-            </div>
-          </div>
-          <div className="text-center">
-            <button
-              onClick={() => onViewDetails && onViewDetails(alertData)}
-              className="flex items-center justify-center space-x-1 w-full px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-            >
-              <PieChart className="w-4 h-4" />
-              <span className="text-sm">상세분석</span>
-            </button>
-          </div>
-        </div>
-
-        {/* 추천사항 요약 */}
-        <div className="bg-white rounded-lg p-4 border border-orange-100">
-          <h4 className="font-medium text-gray-900 mb-2 flex items-center">
-            <AlertTriangle className="w-4 h-4 text-orange-500 mr-2" />
-            추천사항
+      {/* 상세 분석 */}
+      {showDetails && (
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <BarChart3 className="h-5 w-5 mr-2 text-blue-600" />
+            상세 자산 배분 분석
           </h4>
-          <p className="text-gray-700">{alertData.recommendation}</p>
-        </div>
 
-        {/* 상세 정보 (확장 시) */}
-        {isExpanded && (
-          <div className="mt-4 space-y-4">
-            <div className="border-t border-gray-200 pt-4">
-              <h4 className="font-medium text-gray-900 mb-3">
-                현재 vs 목표 비율
-              </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* 현재 상태 */}
+            <div className="space-y-4">
+              <h5 className="font-medium text-gray-800 border-b pb-2">
+                현재 포트폴리오
+              </h5>
 
-              {/* 주식 비율 */}
-              <div className="mb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">
-                    주식
-                  </span>
-                  <span
-                    className={`text-sm font-medium ${getDeviationColor(
-                      alertData.stockDeviation
-                    )}`}
-                  >
-                    {alertData.currentStockRatio?.toFixed(1)}%
-                    {alertData.stockDeviation > 0
-                      ? ` (+${alertData.stockDeviation.toFixed(1)}%)`
-                      : ` (${alertData.stockDeviation.toFixed(1)}%)`}
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">총 자산 가치</span>
+                  <span className="font-semibold text-lg">
+                    {formatCurrency(analysis.totalAssetValue)}
                   </span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className={`h-2 rounded-full ${
-                      alertData.stockDeviation > 10
-                        ? 'bg-red-500'
-                        : alertData.stockDeviation > 0
-                        ? 'bg-orange-500'
-                        : 'bg-blue-500'
-                    }`}
-                    style={{
-                      width: `${Math.min(alertData.currentStockRatio, 100)}%`,
-                    }}
-                  ></div>
-                </div>
-                <div className="flex justify-between text-xs text-gray-500 mt-1">
-                  <span>0%</span>
-                  <span className="font-medium">
-                    목표: {alertData.targetStockRatio}%
-                  </span>
-                  <span>100%</span>
-                </div>
-              </div>
 
-              {/* 현금 비율 */}
-              <div className="mb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">
-                    현금
-                  </span>
-                  <span
-                    className={`text-sm font-medium ${getDeviationColor(
-                      alertData.cashDeviation
-                    )}`}
-                  >
-                    {alertData.currentCashRatio?.toFixed(1)}%
-                    {alertData.cashDeviation > 0
-                      ? ` (+${alertData.cashDeviation.toFixed(1)}%)`
-                      : ` (${alertData.cashDeviation.toFixed(1)}%)`}
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className={`h-2 rounded-full ${
-                      Math.abs(alertData.cashDeviation) > 10
-                        ? 'bg-red-500'
-                        : Math.abs(alertData.cashDeviation) > 0
-                        ? 'bg-orange-500'
-                        : 'bg-green-500'
-                    }`}
-                    style={{
-                      width: `${Math.min(alertData.currentCashRatio, 100)}%`,
-                    }}
-                  ></div>
-                </div>
-                <div className="flex justify-between text-xs text-gray-500 mt-1">
-                  <span>0%</span>
-                  <span className="font-medium">
-                    목표: {alertData.targetCashRatio}%
-                  </span>
-                  <span>100%</span>
-                </div>
-              </div>
-
-              {/* 조정 필요 금액 */}
-              <div className="bg-gray-50 rounded-lg p-3">
-                <h5 className="text-sm font-medium text-gray-900 mb-2">
-                  조정 필요 금액
-                </h5>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="flex justify-between items-center">
                   <div className="flex items-center">
-                    {getActionIcon(alertData.stockAdjustment)}
-                    <div className="ml-2">
-                      <div className="text-sm font-medium text-gray-900">
-                        주식
-                      </div>
-                      <div
-                        className={`text-sm ${
-                          alertData.stockAdjustment > 0
-                            ? 'text-blue-600'
-                            : 'text-red-600'
-                        }`}
-                      >
-                        {alertData.stockAdjustment > 0 ? '+' : ''}₩
-                        {alertData.stockAdjustment?.toLocaleString()}
-                      </div>
+                    <TrendingUp className="h-4 w-4 text-green-600 mr-1" />
+                    <span className="text-gray-600">주식 자산</span>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-medium">
+                      {formatCurrency(analysis.currentStockValue)}
+                    </div>
+                    <div
+                      className={`text-sm ${getDeviationColor(
+                        analysis.stockDeviation
+                      )}`}
+                    >
+                      {formatPercentage(analysis.currentStockRatio)}
                     </div>
                   </div>
+                </div>
+
+                <div className="flex justify-between items-center">
                   <div className="flex items-center">
-                    {getActionIcon(alertData.cashAdjustment)}
-                    <div className="ml-2">
-                      <div className="text-sm font-medium text-gray-900">
-                        현금
-                      </div>
-                      <div
-                        className={`text-sm ${
-                          alertData.cashAdjustment > 0
-                            ? 'text-blue-600'
-                            : 'text-red-600'
-                        }`}
-                      >
-                        {alertData.cashAdjustment > 0 ? '+' : ''}₩
-                        {alertData.cashAdjustment?.toLocaleString()}
-                      </div>
+                    <DollarSign className="h-4 w-4 text-blue-600 mr-1" />
+                    <span className="text-gray-600">현금 자산</span>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-medium">
+                      {formatCurrency(analysis.currentCashValue)}
+                    </div>
+                    <div
+                      className={`text-sm ${getDeviationColor(
+                        analysis.cashDeviation
+                      )}`}
+                    >
+                      {formatPercentage(analysis.currentCashRatio)}
                     </div>
                   </div>
                 </div>
               </div>
             </div>
+
+            {/* 목표 및 조정 */}
+            <div className="space-y-4">
+              <h5 className="font-medium text-gray-800 border-b pb-2">
+                목표 배분 및 조정
+              </h5>
+
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center">
+                    <Target className="h-4 w-4 text-purple-600 mr-1" />
+                    <span className="text-gray-600">목표 주식 비중</span>
+                  </div>
+                  <span className="font-medium text-purple-600">
+                    {formatPercentage(analysis.targetStockRatio)}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center">
+                    <Target className="h-4 w-4 text-purple-600 mr-1" />
+                    <span className="text-gray-600">목표 현금 비중</span>
+                  </div>
+                  <span className="font-medium text-purple-600">
+                    {formatPercentage(analysis.targetCashRatio)}
+                  </span>
+                </div>
+
+                <div className="border-t pt-3 mt-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">주식 조정 필요</span>
+                    <span
+                      className={`font-medium ${
+                        analysis.stockAdjustment > 0
+                          ? 'text-green-600'
+                          : 'text-red-600'
+                      }`}
+                    >
+                      {analysis.stockAdjustment > 0 ? '+' : ''}
+                      {formatCurrency(analysis.stockAdjustment)}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center mt-2">
+                    <span className="text-gray-600">현금 조정 필요</span>
+                    <span
+                      className={`font-medium ${
+                        analysis.cashAdjustment > 0
+                          ? 'text-green-600'
+                          : 'text-red-600'
+                      }`}
+                    >
+                      {analysis.cashAdjustment > 0 ? '+' : ''}
+                      {formatCurrency(analysis.cashAdjustment)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        )}
-      </div>
+
+          {/* 이탈 정도 시각화 */}
+          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+            <h6 className="font-medium text-gray-800 mb-3">비중 이탈 정도</h6>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">주식 비중 이탈</span>
+                <span
+                  className={`text-sm font-medium ${getDeviationColor(
+                    analysis.stockDeviation
+                  )}`}
+                >
+                  {analysis.stockDeviation > 0 ? '+' : ''}
+                  {formatPercentage(analysis.stockDeviation)}
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className={`h-2 rounded-full ${
+                    Math.abs(analysis.stockDeviation) >= 20
+                      ? 'bg-red-500'
+                      : Math.abs(analysis.stockDeviation) >= 10
+                      ? 'bg-orange-500'
+                      : 'bg-yellow-500'
+                  }`}
+                  style={{
+                    width: `${Math.min(
+                      Math.abs(analysis.stockDeviation) * 2,
+                      100
+                    )}%`,
+                  }}
+                ></div>
+              </div>
+            </div>
+          </div>
+
+          {/* 추천사항 */}
+          <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <h6 className="font-medium text-blue-800 mb-2">💡 추천사항</h6>
+            <p className="text-blue-700 text-sm leading-relaxed">
+              {analysis.recommendation}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

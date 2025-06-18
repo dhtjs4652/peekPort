@@ -19,6 +19,10 @@ import {
   Shield,
   BarChart,
   Zap,
+  Calculator,
+  Settings,
+  ArrowRight,
+  AlertCircle,
 } from 'lucide-react';
 
 const PortfolioManagement = () => {
