@@ -60,8 +60,8 @@ const ProtectedLayout = ({ children }) => {
     <div className="min-h-screen bg-gray-50">
       <Navigation currentPage={currentPage} onPageChange={handlePageChange} />
 
-      {/* 사이드바 공간 확보 (pl-64 유지) */}
-      <div className="md:pl-64 pt-16 md:pt-0 min-h-screen">
+      {/* 사이드바 공간 확보 (pl-64) + 상단 헤더 공간 확보 (pt-16) */}
+      <div className="md:pl-64 pt-16 min-h-screen">
         <div
           className={`max-w-full px-4 md:px-8 py-4 md:py-6 space-y-6 transition-opacity duration-300 ${
             fadeIn ? 'opacity-100' : 'opacity-0'
