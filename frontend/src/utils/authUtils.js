@@ -48,7 +48,10 @@ export const isAuthenticated = () => {
 };
 
 // 인증 헤더를 포함한 axios 인스턴스 생성
-export const authAxios = axios.create();
+export const authAxios = axios.create({
+  baseURL: 'http://localhost:8080',
+  withCredentials: true
+});
 
 // 요청 인터셉터 - 모든 요청에 인증 헤더 추가
 authAxios.interceptors.request.use(

@@ -6,6 +6,8 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Setter
@@ -36,6 +38,9 @@ public class GoalAccount {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PortfolioType portfolioType = PortfolioType.BALANCED; // 기본값 설정
+
+    @OneToMany(mappedBy = "goalAccount", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Asset> assets = new ArrayList<>();
 
     @PrePersist
     protected void onCreate() {
