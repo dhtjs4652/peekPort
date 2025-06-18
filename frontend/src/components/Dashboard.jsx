@@ -9,6 +9,10 @@ import {
   Check,
   PieChart as PieChartIcon,
   DollarSign,
+  Target,
+  Wallet,
+  TrendingDown,
+  AlertCircle,
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Sector } from 'recharts';
 import { getToken } from '../utils/authUtils'; // authUtils에서 getToken 가져오기
@@ -89,7 +93,7 @@ const renderCustomizedLabel = ({
       y={y}
       fill="#fff"
       fontWeight="bold"
-      fontSize={11}
+      fontSize={10}
       textAnchor="middle"
       dominantBaseline="central"
       style={{ textShadow: '0px 0px 3px rgba(0,0,0,0.5)' }}
@@ -129,7 +133,7 @@ const renderActiveShape = (props) => {
 
   return (
     <g>
-      <text x={cx} y={cy} dy={8} textAnchor="middle" fill="#333" fontSize={14}>
+      <text x={cx} y={cy} dy={8} textAnchor="middle" fill="#333" fontSize={12}>
         {payload.termLabel}
       </text>
       <Sector
@@ -161,17 +165,17 @@ const renderActiveShape = (props) => {
         y={ey}
         textAnchor={textAnchor}
         fill="#333"
-        fontSize={12}
+        fontSize={11}
       >
         {name}
       </text>
       <text
         x={ex + (cos >= 0 ? 1 : -1) * 12}
         y={ey}
-        dy={18}
+        dy={16}
         textAnchor={textAnchor}
         fill="#999"
-        fontSize={12}
+        fontSize={10}
       >
         {`${value.toLocaleString()}원 `}
         <tspan fontWeight="bold">({(percent * 100).toFixed(1)}%)</tspan>
@@ -183,11 +187,11 @@ const renderActiveShape = (props) => {
 // 커스텀 레전드 렌더러
 const CustomizedLegend = ({ payload }) => {
   return (
-    <ul className="flex flex-wrap justify-center gap-4 text-sm mt-2">
+    <ul className="flex flex-wrap justify-center gap-3 text-xs mt-2">
       {payload.map((entry, index) => (
         <li key={`item-${index}`} className="flex items-center">
           <div
-            className="w-3 h-3 rounded-full mr-2"
+            className="w-2 h-2 rounded-full mr-1"
             style={{ backgroundColor: entry.color }}
           />
           <span className="text-gray-700">{entry.value}</span>
@@ -198,10 +202,10 @@ const CustomizedLegend = ({ payload }) => {
 };
 
 const Dashboard = () => {
-  // 포트폴리오 데이터 - 이제 API에서 가져올 예정
+  // 포트폴리오 데이터
   const [portfolioData, setPortfolioData] = useState({
     targetAmount: 100000000,
-    currentAmount: 0, // API에서 로드될 때까지 0
+    currentAmount: 0,
     investedAmount: 0,
     cash: 0,
     dailyReturn: 0,
@@ -210,33 +214,31 @@ const Dashboard = () => {
       value: 1,
       unit: 'year',
     },
-    // 자산 배분 목표 비중 추가
     targetAllocation: {
       stock: 70,
       cash: 30,
     },
   });
 
-  // 로딩 상태 추가
+  // 상태 관리
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  // 포트폴리오 목록 상태 추가
   const [portfolios, setPortfolios] = useState([]);
   const [primaryPortfolioId, setPrimaryPortfolioId] = useState(null);
-
-  // 리밸런싱 관련 상태 추가
   const [showRebalancingDetailModal, setShowRebalancingDetailModal] =
     useState(false);
   const [rebalancingDetailData, setRebalancingDetailData] = useState(null);
-
-  // 목표 설정 편집 상태
+  const [showHealthModal, setShowHealthModal] = useState(false); // 건강도 모달 상태 추가
   const [isEditingGoal, setIsEditingGoal] = useState(false);
   const [editedGoal, setEditedGoal] = useState({
     amount: portfolioData.targetAmount,
     period: { ...portfolioData.goalPeriod },
     allocation: { ...portfolioData.targetAllocation },
   });
+  const [stocksData, setStocksData] = useState([]);
+  const [activeIndex, setActiveIndex] = useState(null);
+  const [showDetailedChart, setShowDetailedChart] = useState(false);
+  const [progressWidth, setProgressWidth] = useState(0);
 
   // 목표 기간 옵션
   const periodOptions = [
@@ -245,9 +247,6 @@ const Dashboard = () => {
     { value: 'quarter', label: '분기' },
     { value: 'custom', label: '직접 입력' },
   ];
-
-  // 종목별 데이터 (API에서 로드)
-  const [stocksData, setStocksData] = useState([]);
 
   // 리밸런싱 상세 보기 핸들러
   const handleViewRebalancingDetails = (rebalancingData) => {
@@ -340,14 +339,10 @@ const Dashboard = () => {
     },
   ];
 
-  const [activeIndex, setActiveIndex] = useState(null);
-  const [showDetailedChart, setShowDetailedChart] = useState(false);
-  const [progressWidth, setProgressWidth] = useState(0);
-
   // API 호출 함수들
   const fetchPortfolioData = useCallback(async () => {
     try {
-      const token = getToken(); // authUtils의 getToken 사용
+      const token = getToken();
       if (!token) {
         throw new Error('인증 토큰이 없습니다.');
       }
@@ -367,27 +362,20 @@ const Dashboard = () => {
       const data = await response.json();
       console.log('Portfolio API Response:', data);
 
-      // 포트폴리오 목록 저장
       setPortfolios(data);
 
-      // 첫 번째 포트폴리오를 주요 포트폴리오로 설정
       if (data && data.length > 0) {
         setPrimaryPortfolioId(data[0].id);
 
-        // 첫 번째 포트폴리오의 목표 금액으로 설정
         const firstPortfolio = data[0];
-
-        // 모든 포트폴리오의 총 자산 합계 계산
         const totalAssets = data.reduce((sum, portfolio) => {
           return sum + (portfolio.totalAmount || 0);
         }, 0);
 
-        // 모든 포트폴리오의 현금 합계 계산
         const totalCash = data.reduce((sum, portfolio) => {
           return sum + (portfolio.cash || 0);
         }, 0);
 
-        // 어제 금액 계산 (예시로 현재 금액의 98%로 설정)
         const yesterdayAmount = totalAssets * 0.98;
         const dailyReturn =
           totalAssets > 0
@@ -401,14 +389,12 @@ const Dashboard = () => {
           cash: totalCash,
           yesterdayAmount: yesterdayAmount,
           dailyReturn: parseFloat(dailyReturn.toFixed(2)),
-          // 기본 자산 배분 비율 (나중에 API에서 가져올 수 있음)
           targetAllocation: {
             stock: firstPortfolio.targetStockRatio || 70,
             cash: firstPortfolio.targetCashRatio || 30,
           },
         }));
 
-        // editedGoal도 업데이트
         setEditedGoal((prev) => ({
           ...prev,
           amount: firstPortfolio.targetAmount || 100000000,
@@ -422,21 +408,19 @@ const Dashboard = () => {
       console.error('포트폴리오 데이터 로드 실패:', err);
       setError(err.message);
     }
-  }, []); // 의존성 없음 - 함수 내부에서 사용하는 상태들은 setter 함수들이므로 안정적
+  }, []);
 
   const fetchStocksData = useCallback(async () => {
     try {
-      const token = getToken(); // authUtils의 getToken 사용
+      const token = getToken();
       if (!token) {
         throw new Error('인증 토큰이 없습니다.');
       }
 
       const allStocks = [];
 
-      // portfolios state를 사용 (이미 fetchPortfolioData에서 로드됨)
       for (const portfolio of portfolios) {
         try {
-          // 올바른 백엔드 API 엔드포인트 사용
           const assetsResponse = await fetch(
             `http://localhost:8080/api/portfolios/${portfolio.id}/stocks`,
             {
@@ -451,7 +435,6 @@ const Dashboard = () => {
           if (assetsResponse.ok) {
             const assets = await assetsResponse.json();
 
-            // AssetResponse 구조에 맞게 데이터 매핑
             assets.forEach((asset, index) => {
               const colors = [
                 '#0088FE',
@@ -464,7 +447,6 @@ const Dashboard = () => {
               ];
               const colorIndex = index % colors.length;
 
-              // term 필드를 직접 사용 (백엔드에서 제공)
               let termLabel = '중기';
               switch (asset.term) {
                 case 'short':
@@ -481,7 +463,7 @@ const Dashboard = () => {
 
               allStocks.push({
                 name: asset.name || '알 수 없는 종목',
-                value: asset.totalValue || 0, // AssetResponse의 totalValue 사용
+                value: asset.totalValue || 0,
                 term: asset.term || 'mid',
                 termLabel: termLabel,
                 returnRate: asset.returnRate || 0,
@@ -502,7 +484,7 @@ const Dashboard = () => {
       console.error('종목 데이터 로드 실패:', err);
       setError(err.message);
     }
-  }, [portfolios]); // portfolios가 변경될 때마다 함수 재생성
+  }, [portfolios]);
 
   // 진행 바 애니메이션
   const progressPercentage =
@@ -511,7 +493,6 @@ const Dashboard = () => {
       : 0;
 
   useEffect(() => {
-    // 지연 후 진행바 채우기
     const timer = setTimeout(() => {
       setProgressWidth(progressPercentage);
     }, 500);
@@ -526,11 +507,7 @@ const Dashboard = () => {
       setError(null);
 
       try {
-        // 1. 먼저 포트폴리오 데이터를 로드 (portfolios state 설정)
         await fetchPortfolioData();
-
-        // 2. 포트폴리오 데이터 로드 후 주식 데이터 로드
-        // portfolios state가 업데이트된 후 실행되도록 별도로 처리
       } catch (err) {
         console.error('데이터 로드 실패:', err);
         setError('데이터를 불러오는데 실패했습니다.');
@@ -542,7 +519,6 @@ const Dashboard = () => {
     loadData();
   }, [fetchPortfolioData]);
 
-  // portfolios state가 업데이트되면 주식 데이터 로드
   useEffect(() => {
     if (portfolios.length > 0) {
       fetchStocksData();
@@ -558,7 +534,7 @@ const Dashboard = () => {
     setActiveIndex(null);
   };
 
-  // 목표 편집 제출 핸들러 - 수정된 부분
+  // 목표 편집 제출 핸들러
   const handleGoalSubmit = useCallback(async () => {
     try {
       const token = getToken();
@@ -566,7 +542,6 @@ const Dashboard = () => {
         throw new Error('인증 토큰이 없습니다.');
       }
 
-      // 첫 번째 포트폴리오의 ID를 사용 (또는 주요 포트폴리오 ID)
       const portfolioId =
         primaryPortfolioId || (portfolios.length > 0 ? portfolios[0].id : null);
 
@@ -594,22 +569,19 @@ const Dashboard = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      // 성공시 로컬 state 업데이트
       setPortfolioData((prev) => ({
         ...prev,
         targetAmount: editedGoal.amount,
-        goalPeriod: { ...editedGoal.period }, // 기간은 로컬에서만 관리
+        goalPeriod: { ...editedGoal.period },
         targetAllocation: { ...editedGoal.allocation },
       }));
 
       setIsEditingGoal(false);
 
-      // 성공 메시지
       console.log('목표 설정이 성공적으로 업데이트되었습니다.');
     } catch (err) {
       console.error('목표 설정 업데이트 실패:', err);
       setError('목표 설정 업데이트에 실패했습니다: ' + err.message);
-      // 에러 발생시 편집 모드 유지
     }
   }, [editedGoal, primaryPortfolioId, portfolios]);
 
@@ -661,11 +633,21 @@ const Dashboard = () => {
             포트폴리오 자산의 전체 현황을 확인할 수 있습니다.
           </p>
         </div>
-        <div className="bg-white rounded-xl p-6 shadow-sm">
-          <div className="animate-pulse">
-            <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
-            <div className="h-8 bg-gray-200 rounded w-1/2 mb-6"></div>
-            <div className="h-64 bg-gray-200 rounded"></div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-9">
+            <div className="bg-white rounded-xl p-6 shadow-sm animate-pulse">
+              <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+              <div className="h-8 bg-gray-200 rounded w-1/2 mb-6"></div>
+              <div className="h-64 bg-gray-200 rounded"></div>
+            </div>
+          </div>
+          <div className="lg:col-span-3 space-y-6">
+            <div className="bg-white rounded-xl p-6 shadow-sm animate-pulse">
+              <div className="h-32 bg-gray-200 rounded"></div>
+            </div>
+            <div className="bg-white rounded-xl p-6 shadow-sm animate-pulse">
+              <div className="h-32 bg-gray-200 rounded"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -710,167 +692,159 @@ const Dashboard = () => {
         </p>
       </div>
 
-      {/* 리밸런싱 알림 - 대시보드 최상단에 배치 */}
-      <RebalancingAlert
-        portfolioId={
-          primaryPortfolioId || (portfolios.length > 0 ? portfolios[0].id : 1)
-        }
-        onViewDetails={handleViewRebalancingDetails}
-      />
+      {/* 리밸런싱 알림 - 작게 만들기 */}
+      <div className="relative">
+        <RebalancingAlert
+          portfolioId={
+            primaryPortfolioId || (portfolios.length > 0 ? portfolios[0].id : 1)
+          }
+          onViewDetails={handleViewRebalancingDetails}
+          compact={true}
+        />
+      </div>
 
-      <div className="bg-white rounded-xl p-6 shadow-sm relative overflow-hidden">
-        {/* 수익률 피드백 알림 */}
-        {portfolioData.dailyReturn > 0 && (
-          <div className="absolute top-0 right-0 bg-green-500 text-white px-4 py-2 rounded-bl-lg flex items-center shadow">
-            <TrendingUp className="h-4 w-4 mr-2" />
-            <span>
-              오늘 수익률이 <strong>{portfolioData.dailyReturn}%</strong>{' '}
-              올랐어요!
-            </span>
-          </div>
-        )}
+      {/* 격자 레이아웃 시작 */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* 왼쪽 메인 영역 (9칸) */}
+        <div className="lg:col-span-9 space-y-6">
+          {/* 현재 자산 및 목표 카드 */}
+          <div className="bg-white rounded-xl p-6 shadow-sm relative overflow-hidden">
+            {/* 수익률 피드백 알림 */}
+            {portfolioData.dailyReturn > 0 && (
+              <div className="absolute top-0 right-0 bg-green-500 text-white px-3 py-1 rounded-bl-lg flex items-center shadow text-sm">
+                <TrendingUp className="h-3 w-3 mr-1" />
+                <span>+{portfolioData.dailyReturn}%</span>
+              </div>
+            )}
 
-        {portfolioData.dailyReturn < 0 && (
-          <div className="absolute top-0 right-0 bg-red-500 text-white px-4 py-2 rounded-bl-lg flex items-center shadow">
-            <TrendingUp className="h-4 w-4 mr-2 transform rotate-180" />
-            <span>
-              오늘 수익률이{' '}
-              <strong>{Math.abs(portfolioData.dailyReturn)}%</strong> 하락했어요
-            </span>
-          </div>
-        )}
+            {portfolioData.dailyReturn < 0 && (
+              <div className="absolute top-0 right-0 bg-red-500 text-white px-3 py-1 rounded-bl-lg flex items-center shadow text-sm">
+                <TrendingDown className="h-3 w-3 mr-1" />
+                <span>{portfolioData.dailyReturn}%</span>
+              </div>
+            )}
 
-        <div className="mb-4 mt-6">
-          {/* 목표 금액 섹션 */}
-          <div className="flex justify-between items-start mb-6">
-            <div>
-              <p className="text-sm text-gray-500">현재 자산</p>
-              <p className="text-xl font-bold">
-                <AnimatedNumber
-                  value={portfolioData.currentAmount}
-                  suffix="원"
-                />
-              </p>
-              {/* 현재 자산 배분 표시 */}
-              <div className="mt-2 text-sm text-gray-600">
-                <div className="flex items-center space-x-4">
-                  <div className="flex items-center">
-                    <PieChartIcon className="w-4 h-4 mr-1 text-blue-500" />
-                    <span>주식 {currentAllocation.stock.toFixed(1)}%</span>
-                  </div>
-                  <div className="flex items-center">
-                    <DollarSign className="w-4 h-4 mr-1 text-orange-500" />
-                    <span>현금 {currentAllocation.cash.toFixed(1)}%</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+              {/* 현재 자산 */}
+              <div>
+                <div className="flex items-center mb-2">
+                  <Wallet className="h-5 w-5 text-blue-500 mr-2" />
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    현재 자산
+                  </h3>
+                </div>
+                <p className="text-2xl font-bold text-blue-600 mb-2">
+                  <AnimatedNumber
+                    value={portfolioData.currentAmount}
+                    suffix="원"
+                  />
+                </p>
+                <div className="text-sm text-gray-600">
+                  <div className="flex items-center space-x-4">
+                    <div className="flex items-center">
+                      <PieChartIcon className="w-3 h-3 mr-1 text-blue-500" />
+                      <span>주식 {currentAllocation.stock.toFixed(1)}%</span>
+                    </div>
+                    <div className="flex items-center">
+                      <DollarSign className="w-3 h-3 mr-1 text-orange-500" />
+                      <span>현금 {currentAllocation.cash.toFixed(1)}%</span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-            <div className="text-right">
-              <div className="flex items-center justify-end">
-                <h3 className="text-md font-medium text-gray-700">투자 목표</h3>
-                <button
-                  onClick={() => setIsEditingGoal(!isEditingGoal)}
-                  className="ml-2 text-blue-500 hover:text-blue-700 transition-colors"
-                  type="button"
-                >
-                  <Edit2 className="h-4 w-4" />
-                </button>
-              </div>
 
-              {isEditingGoal ? (
-                <div className="mt-2 p-4 bg-blue-50 rounded-lg min-w-80">
-                  {/* 목표 금액 */}
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      목표 금액
-                    </label>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="number"
-                        value={editedGoal.amount}
-                        onChange={(e) =>
-                          setEditedGoal({
-                            ...editedGoal,
-                            amount: Number(e.target.value),
-                          })
-                        }
-                        className="p-2 border rounded-md w-40 focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
-                      />
-                      <span className="text-sm text-gray-500">원</span>
-                    </div>
+              {/* 투자 목표 */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center">
+                    <Target className="h-5 w-5 text-green-500 mr-2" />
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      투자 목표
+                    </h3>
                   </div>
+                  <button
+                    onClick={() => setIsEditingGoal(!isEditingGoal)}
+                    className="text-blue-500 hover:text-blue-700 transition-colors"
+                    type="button"
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </button>
+                </div>
 
-                  {/* 달성 기간 */}
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      달성 기간
-                    </label>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="number"
-                        value={editedGoal.period.value}
-                        onChange={(e) =>
-                          setEditedGoal({
-                            ...editedGoal,
-                            period: {
-                              ...editedGoal.period,
-                              value: Number(e.target.value),
-                            },
-                          })
-                        }
-                        min="1"
-                        className="p-2 border rounded-md w-20 focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
-                      />
-                      <select
-                        value={editedGoal.period.unit}
-                        onChange={(e) =>
-                          setEditedGoal({
-                            ...editedGoal,
-                            period: {
-                              ...editedGoal.period,
-                              unit: e.target.value,
-                            },
-                          })
-                        }
-                        className="p-2 border rounded-md focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
-                      >
-                        {periodOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* 자산 배분 목표 */}
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      자산 배분 목표
-                    </label>
-                    <div className="space-y-3">
-                      {/* 슬라이더 */}
-                      <div>
+                {isEditingGoal ? (
+                  <div className="space-y-3 p-3 bg-blue-50 rounded-lg">
+                    {/* 목표 금액 입력 */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        목표 금액
+                      </label>
+                      <div className="flex items-center space-x-2">
                         <input
-                          type="range"
-                          min="0"
-                          max="100"
-                          value={editedGoal.allocation.stock}
+                          type="number"
+                          value={editedGoal.amount}
                           onChange={(e) =>
-                            handleAllocationChange(Number(e.target.value))
+                            setEditedGoal({
+                              ...editedGoal,
+                              amount: Number(e.target.value),
+                            })
                           }
-                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-                          style={{
-                            background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${editedGoal.allocation.stock}%, #f3f4f6 ${editedGoal.allocation.stock}%, #f3f4f6 100%)`,
-                          }}
+                          className="p-2 border rounded-md w-32 text-sm focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
                         />
+                        <span className="text-xs text-gray-500">원</span>
                       </div>
+                    </div>
 
-                      {/* 비율 표시 */}
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center space-x-2">
-                          <div className="w-4 h-4 bg-blue-500 rounded"></div>
-                          <span className="text-sm font-medium">주식</span>
+                    {/* 달성 기간 */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        달성 기간
+                      </label>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="number"
+                          value={editedGoal.period.value}
+                          onChange={(e) =>
+                            setEditedGoal({
+                              ...editedGoal,
+                              period: {
+                                ...editedGoal.period,
+                                value: Number(e.target.value),
+                              },
+                            })
+                          }
+                          min="1"
+                          className="p-2 border rounded-md w-16 text-sm focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
+                        />
+                        <select
+                          value={editedGoal.period.unit}
+                          onChange={(e) =>
+                            setEditedGoal({
+                              ...editedGoal,
+                              period: {
+                                ...editedGoal.period,
+                                unit: e.target.value,
+                              },
+                            })
+                          }
+                          className="p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
+                        >
+                          {periodOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* 자산 배분 */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        자산 배분
+                      </label>
+                      <div className="flex items-center space-x-3">
+                        <div className="flex items-center space-x-1">
+                          <span className="text-xs">주식</span>
                           <input
                             type="number"
                             value={editedGoal.allocation.stock}
@@ -883,14 +857,12 @@ const Dashboard = () => {
                             }}
                             min="0"
                             max="100"
-                            className="w-16 p-1 text-sm border rounded focus:ring-1 focus:ring-blue-300"
+                            className="w-12 p-1 text-xs border rounded focus:ring-1 focus:ring-blue-300"
                           />
-                          <span className="text-sm">%</span>
+                          <span className="text-xs">%</span>
                         </div>
-
-                        <div className="flex items-center space-x-2">
-                          <div className="w-4 h-4 bg-orange-500 rounded"></div>
-                          <span className="text-sm font-medium">현금</span>
+                        <div className="flex items-center space-x-1">
+                          <span className="text-xs">현금</span>
                           <input
                             type="number"
                             value={editedGoal.allocation.cash}
@@ -903,328 +875,465 @@ const Dashboard = () => {
                             }}
                             min="0"
                             max="100"
-                            className="w-16 p-1 text-sm border rounded focus:ring-1 focus:ring-blue-300"
+                            className="w-12 p-1 text-xs border rounded focus:ring-1 focus:ring-blue-300"
                           />
-                          <span className="text-sm">%</span>
-                        </div>
-                      </div>
-
-                      {/* 현재 vs 목표 비교 */}
-                      <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                        <div className="text-xs text-gray-600 mb-2">
-                          현재 vs 목표
-                        </div>
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-center">
-                            <span className="text-xs text-gray-700">주식</span>
-                            <div className="flex items-center space-x-2">
-                              <span className="text-xs text-gray-600">
-                                {currentAllocation.stock.toFixed(1)}%
-                              </span>
-                              <span className="text-xs text-gray-400">→</span>
-                              <span className="text-xs font-medium text-blue-600">
-                                {editedGoal.allocation.stock}%
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-xs text-gray-700">현금</span>
-                            <div className="flex items-center space-x-2">
-                              <span className="text-xs text-gray-600">
-                                {currentAllocation.cash.toFixed(1)}%
-                              </span>
-                              <span className="text-xs text-gray-400">→</span>
-                              <span className="text-xs font-medium text-orange-600">
-                                {editedGoal.allocation.cash}%
-                              </span>
-                            </div>
-                          </div>
+                          <span className="text-xs">%</span>
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* 버튼 */}
-                  <div className="flex justify-end space-x-2 pt-2">
-                    <button
-                      onClick={handleEditCancel}
-                      className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
-                      type="button"
-                    >
-                      취소
-                    </button>
-                    <button
-                      onClick={handleGoalSubmit}
-                      className="px-3 py-2 text-sm text-white bg-blue-500 rounded-md hover:bg-blue-600 flex items-center transition-colors"
-                      type="button"
-                    >
-                      <Check className="h-3 w-3 mr-1" />
-                      저장
-                    </button>
+                    {/* 버튼 */}
+                    <div className="flex justify-end space-x-2 pt-2">
+                      <button
+                        onClick={handleEditCancel}
+                        className="px-2 py-1 text-xs text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                        type="button"
+                      >
+                        취소
+                      </button>
+                      <button
+                        onClick={handleGoalSubmit}
+                        className="px-2 py-1 text-xs text-white bg-blue-500 rounded-md hover:bg-blue-600 flex items-center transition-colors"
+                        type="button"
+                      >
+                        <Check className="h-3 w-3 mr-1" />
+                        저장
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <div>
-                  <div className="flex items-end justify-end">
-                    <p className="text-xl font-bold">
+                ) : (
+                  <div>
+                    <p className="text-2xl font-bold text-green-600 mb-2">
                       <AnimatedNumber
                         value={portfolioData.targetAmount}
                         suffix="원"
                       />
                     </p>
-                    <span className="text-sm text-gray-500 ml-2">
-                      / {getPeriodText(portfolioData.goalPeriod)}
-                    </span>
-                  </div>
-                  {/* 목표 자산 배분 표시 */}
-                  <div className="mt-2 text-sm text-gray-600">
-                    <div className="flex items-center justify-end space-x-4">
-                      <div className="flex items-center">
-                        <span className="text-xs">
-                          목표: 주식 {portfolioData.targetAllocation.stock}%
+                    <div className="text-sm text-gray-600">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <Calendar className="h-3 w-3 text-gray-400" />
+                        <span>
+                          {getPeriodText(portfolioData.goalPeriod)} 목표
                         </span>
                       </div>
-                      <div className="flex items-center">
-                        <span className="text-xs">
-                          현금 {portfolioData.targetAllocation.cash}%
-                        </span>
+                      <div className="text-xs">
+                        목표: 주식 {portfolioData.targetAllocation.stock}% /
+                        현금 {portfolioData.targetAllocation.cash}%
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          </div>
 
-          {/* 진행 바 */}
-          <div className="w-full bg-gray-200 rounded-full h-2.5">
-            <div
-              className="bg-blue-600 h-2.5 rounded-full transition-all duration-1500 ease-out"
-              style={{ width: `${Math.min(progressWidth, 100)}%` }}
-            />
-          </div>
-          <div className="flex justify-between text-sm text-gray-500 mt-2">
-            <p>
-              목표 달성률{' '}
-              <strong>
-                <AnimatedNumber
-                  value={progressPercentage}
-                  duration={1000}
-                  suffix="%"
+            {/* 진행률 바 */}
+            <div className="mt-6">
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-1500 ease-out"
+                  style={{ width: `${Math.min(progressWidth, 100)}%` }}
                 />
-              </strong>
-            </p>
-            <div className="flex items-center">
-              <Calendar className="h-4 w-4 mr-1 text-gray-400" />
-              <span>{getPeriodText(portfolioData.goalPeriod)} 목표</span>
+              </div>
+              <div className="flex justify-between text-sm text-gray-500 mt-2">
+                <p>
+                  목표 달성률{' '}
+                  <strong>
+                    <AnimatedNumber
+                      value={progressPercentage}
+                      duration={1000}
+                      suffix="%"
+                    />
+                  </strong>
+                </p>
+                <p>
+                  남은 금액:{' '}
+                  <AnimatedNumber
+                    value={Math.max(
+                      0,
+                      portfolioData.targetAmount - portfolioData.currentAmount
+                    )}
+                    suffix="원"
+                  />
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      <div className="bg-white rounded-xl p-6 shadow-sm">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-bold text-gray-900">자산 구성</h2>
-          <button
-            onClick={() => setShowDetailedChart(!showDetailedChart)}
-            className="flex items-center text-sm text-blue-600 hover:text-blue-800 transition-colors"
-            type="button"
-          >
-            {showDetailedChart ? (
+          {/* 자산 구성 차트 */}
+          <div className="bg-white rounded-xl p-6 shadow-sm">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-bold text-gray-900">자산 구성</h2>
+              <button
+                onClick={() => setShowDetailedChart(!showDetailedChart)}
+                className="flex items-center text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                type="button"
+              >
+                {showDetailedChart ? (
+                  <>
+                    <ChevronUp className="h-4 w-4 mr-1" />
+                    기간별 보기
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="h-4 w-4 mr-1" />
+                    종목별 보기
+                  </>
+                )}
+              </button>
+            </div>
+
+            {allAssetsData.length > 0 ? (
               <>
-                <ChevronUp className="h-4 w-4 mr-1" />
-                기간별 요약 보기
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      {showDetailedChart ? (
+                        <Pie
+                          activeIndex={activeIndex}
+                          activeShape={renderActiveShape}
+                          data={allAssetsData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={50}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          paddingAngle={2}
+                          dataKey="value"
+                          onMouseEnter={onPieEnter}
+                          onMouseLeave={onPieLeave}
+                          animationDuration={1000}
+                          label={renderCustomizedLabel}
+                          labelLine={false}
+                        >
+                          {allAssetsData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                      ) : (
+                        <Pie
+                          activeIndex={activeIndex}
+                          activeShape={renderActiveShape}
+                          data={termSummaryData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={50}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          paddingAngle={2}
+                          dataKey="value"
+                          onMouseEnter={onPieEnter}
+                          onMouseLeave={onPieLeave}
+                          animationDuration={1000}
+                          label={renderCustomizedLabel}
+                          labelLine={false}
+                        >
+                          {termSummaryData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                      )}
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <CustomizedLegend
+                  payload={getCustomLegendPayload(
+                    showDetailedChart ? allAssetsData : termSummaryData
+                  )}
+                />
               </>
             ) : (
-              <>
-                <ChevronDown className="h-4 w-4 mr-1" />
-                종목별 상세 보기
-              </>
+              <div className="h-64 flex items-center justify-center text-gray-500">
+                <div className="text-center">
+                  <p className="text-lg mb-2">📊</p>
+                  <p>아직 등록된 자산이 없습니다.</p>
+                  <p className="text-sm">
+                    포트폴리오 관리에서 자산을 추가해보세요!
+                  </p>
+                </div>
+              </div>
             )}
-          </button>
+
+            <div className="mt-4 flex items-center text-xs text-gray-500">
+              <Info className="h-3 w-3 mr-1" />
+              <p>차트에 마우스를 올리면 상세 정보를 확인할 수 있습니다.</p>
+            </div>
+          </div>
         </div>
 
-        {allAssetsData.length > 0 ? (
-          <>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  {showDetailedChart ? (
-                    // 종목별 상세 차트 - 종목명 표시
-                    <Pie
-                      activeIndex={activeIndex}
-                      activeShape={renderActiveShape}
-                      data={allAssetsData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={70}
-                      outerRadius={100}
-                      fill="#8884d8"
-                      paddingAngle={2}
-                      dataKey="value"
-                      onMouseEnter={onPieEnter}
-                      onMouseLeave={onPieLeave}
-                      animationDuration={1000}
-                      label={renderCustomizedLabel}
-                      labelLine={false}
-                    >
-                      {allAssetsData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                  ) : (
-                    // 기간별 요약 차트 - 기간명 표시
-                    <Pie
-                      activeIndex={activeIndex}
-                      activeShape={renderActiveShape}
-                      data={termSummaryData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={70}
-                      outerRadius={100}
-                      fill="#8884d8"
-                      paddingAngle={2}
-                      dataKey="value"
-                      onMouseEnter={onPieEnter}
-                      onMouseLeave={onPieLeave}
-                      animationDuration={1000}
-                      label={renderCustomizedLabel}
-                      labelLine={false}
-                    >
-                      {termSummaryData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                  )}
-                </PieChart>
-              </ResponsiveContainer>
+        {/* 오른쪽 사이드 영역 (3칸) */}
+        <div className="lg:col-span-3 flex flex-col h-full">
+          {/* 투자 기간별 요약 카드들 */}
+          <div className="grid grid-cols-2 lg:grid-cols-1 gap-4 mb-6">
+            {/* 단기 투자 */}
+            <div className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-blue-500">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-semibold text-blue-700">
+                  단기 투자
+                </h3>
+                <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+              </div>
+              <p className="text-lg font-bold text-blue-600 mb-1">
+                <AnimatedNumber value={termTotals.short} suffix="원" />
+              </p>
+              <p className="text-xs text-blue-600">
+                전체의{' '}
+                <strong>
+                  {portfolioData.currentAmount > 0
+                    ? (
+                        (termTotals.short / portfolioData.currentAmount) *
+                        100
+                      ).toFixed(1)
+                    : '0'}
+                  %
+                </strong>
+              </p>
             </div>
 
-            {/* 커스텀 레전드 */}
-            <CustomizedLegend
-              payload={getCustomLegendPayload(
-                showDetailedChart ? allAssetsData : termSummaryData
-              )}
-            />
-          </>
-        ) : (
-          <div className="h-80 flex items-center justify-center text-gray-500">
-            <div className="text-center">
-              <p className="text-lg mb-2">📊</p>
-              <p>아직 등록된 자산이 없습니다.</p>
-              <p className="text-sm">
-                포트폴리오 관리에서 자산을 추가해보세요!
+            {/* 중기 투자 */}
+            <div className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-purple-500">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-semibold text-purple-700">
+                  중기 투자
+                </h3>
+                <div className="w-3 h-3 rounded-full bg-purple-500"></div>
+              </div>
+              <p className="text-lg font-bold text-purple-600 mb-1">
+                <AnimatedNumber value={termTotals.mid} suffix="원" />
+              </p>
+              <p className="text-xs text-purple-600">
+                전체의{' '}
+                <strong>
+                  {portfolioData.currentAmount > 0
+                    ? (
+                        (termTotals.mid / portfolioData.currentAmount) *
+                        100
+                      ).toFixed(1)
+                    : '0'}
+                  %
+                </strong>
+              </p>
+            </div>
+
+            {/* 장기 투자 */}
+            <div className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-green-500">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-semibold text-green-700">
+                  장기 투자
+                </h3>
+                <div className="w-3 h-3 rounded-full bg-green-500"></div>
+              </div>
+              <p className="text-lg font-bold text-green-600 mb-1">
+                <AnimatedNumber value={termTotals.long} suffix="원" />
+              </p>
+              <p className="text-xs text-green-600">
+                전체의{' '}
+                <strong>
+                  {portfolioData.currentAmount > 0
+                    ? (
+                        (termTotals.long / portfolioData.currentAmount) *
+                        100
+                      ).toFixed(1)
+                    : '0'}
+                  %
+                </strong>
+              </p>
+            </div>
+
+            {/* 보유 현금 */}
+            <div className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-orange-500">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-semibold text-orange-700">
+                  보유 현금
+                </h3>
+                <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+              </div>
+              <p className="text-lg font-bold text-orange-600 mb-1">
+                <AnimatedNumber value={termTotals.cash} suffix="원" />
+              </p>
+              <p className="text-xs text-orange-600">
+                전체의{' '}
+                <strong>
+                  {portfolioData.currentAmount > 0
+                    ? (
+                        (termTotals.cash / portfolioData.currentAmount) *
+                        100
+                      ).toFixed(1)
+                    : '0'}
+                  %
+                </strong>
               </p>
             </div>
           </div>
-        )}
 
-        <div className="mt-4 grid md:grid-cols-4 gap-4">
-          <div className="p-4 bg-blue-50 rounded-lg hover:shadow-md transition-shadow duration-300">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm font-medium text-blue-800">단기 투자</p>
-                <p className="text-lg font-bold text-blue-600 mt-1">
-                  <AnimatedNumber value={termTotals.short} suffix="원" />
-                </p>
+          {/* 포트폴리오 건강도 카드 - 축약 버전 */}
+          <div
+            className="bg-white rounded-xl p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow border-2 hover:border-blue-200"
+            onClick={() => setShowHealthModal(true)}
+          >
+            <div className="text-center">
+              <div className="flex items-center justify-center mb-2">
+                <AlertCircle className="h-5 w-5 mr-2 text-blue-500" />
+                <h3 className="text-sm font-semibold text-gray-900">
+                  포트폴리오 건강도
+                </h3>
               </div>
-              <div className="h-3 w-3 rounded-full bg-blue-500"></div>
-            </div>
-            <p className="text-xs text-blue-700 mt-2">
-              전체 자산의{' '}
-              <strong>
-                {portfolioData.currentAmount > 0
-                  ? (
-                      (termTotals.short / portfolioData.currentAmount) *
-                      100
-                    ).toFixed(1)
-                  : '0'}
-                %
-              </strong>
-            </p>
-          </div>
 
-          <div className="p-4 bg-purple-50 rounded-lg hover:shadow-md transition-shadow duration-300">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm font-medium text-purple-800">중기 투자</p>
-                <p className="text-lg font-bold text-purple-600 mt-1">
-                  <AnimatedNumber value={termTotals.mid} suffix="원" />
-                </p>
+              <div className="mb-3">
+                <div className="text-3xl font-bold text-green-600 mb-1">
+                  78점
+                </div>
+                <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                  우수
+                </span>
               </div>
-              <div className="h-3 w-3 rounded-full bg-purple-500"></div>
-            </div>
-            <p className="text-xs text-purple-700 mt-2">
-              전체 자산의{' '}
-              <strong>
-                {portfolioData.currentAmount > 0
-                  ? (
-                      (termTotals.mid / portfolioData.currentAmount) *
-                      100
-                    ).toFixed(1)
-                  : '0'}
-                %
-              </strong>
-            </p>
-          </div>
 
-          <div className="p-4 bg-green-50 rounded-lg hover:shadow-md transition-shadow duration-300">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm font-medium text-green-800">장기 투자</p>
-                <p className="text-lg font-bold text-green-600 mt-1">
-                  <AnimatedNumber value={termTotals.long} suffix="원" />
-                </p>
+              <div className="text-xs text-gray-500 mb-3">
+                평균보다 높은 수준의 건강한 포트폴리오
               </div>
-              <div className="h-3 w-3 rounded-full bg-green-500"></div>
-            </div>
-            <p className="text-xs text-green-700 mt-2">
-              전체 자산의{' '}
-              <strong>
-                {portfolioData.currentAmount > 0
-                  ? (
-                      (termTotals.long / portfolioData.currentAmount) *
-                      100
-                    ).toFixed(1)
-                  : '0'}
-                %
-              </strong>
-            </p>
-          </div>
 
-          <div className="p-4 bg-orange-50 rounded-lg hover:shadow-md transition-shadow duration-300">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm font-medium text-orange-800">보유 현금</p>
-                <p className="text-lg font-bold text-orange-600 mt-1">
-                  <AnimatedNumber value={termTotals.cash} suffix="원" />
-                </p>
+              <div className="text-xs text-blue-600 font-medium flex items-center justify-center">
+                👆 클릭하여 상세보기
               </div>
-              <div className="h-3 w-3 rounded-full bg-orange-500"></div>
             </div>
-            <p className="text-xs text-orange-700 mt-2">
-              전체 자산의{' '}
-              <strong>
-                {portfolioData.currentAmount > 0
-                  ? (
-                      (termTotals.cash / portfolioData.currentAmount) *
-                      100
-                    ).toFixed(1)
-                  : '0'}
-                %
-              </strong>
-            </p>
           </div>
-        </div>
-
-        <div className="mt-6 flex items-center text-sm text-gray-500">
-          <Info className="h-4 w-4 mr-2" />
-          <p>
-            차트에 마우스를 올리면 상세 정보를 확인할 수 있습니다. 상세/요약
-            보기를 전환할 수 있습니다.
-          </p>
         </div>
       </div>
+
+      {/* 포트폴리오 건강도 상세 모달 */}
+      {showHealthModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-bold text-gray-900 flex items-center">
+                <AlertCircle className="h-5 w-5 mr-2 text-blue-500" />
+                포트폴리오 건강도
+              </h2>
+              <button
+                onClick={() => setShowHealthModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* 전체 건강도 점수 */}
+              <div className="text-center pb-4 border-b border-gray-100">
+                <div className="text-4xl font-bold text-green-600 mb-2">
+                  78점
+                </div>
+                <span className="inline-block bg-green-100 text-green-800 text-sm px-3 py-1 rounded-full mb-2">
+                  우수
+                </span>
+                <p className="text-sm text-gray-600">
+                  평균보다 높은 수준의 건강한 포트폴리오입니다.
+                </p>
+              </div>
+
+              {/* 다양성 점수 */}
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-gray-600">다양성</span>
+                  <span className="text-sm font-semibold text-green-600">
+                    우수
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+                  <div
+                    className="bg-green-500 h-2 rounded-full"
+                    style={{ width: '80%' }}
+                  ></div>
+                </div>
+                <p className="text-xs text-gray-500">
+                  여러 투자 기간과 자산에 분산 투자가 잘 되어 있습니다.
+                </p>
+              </div>
+
+              {/* 리스크 레벨 */}
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-gray-600">리스크</span>
+                  <span className="text-sm font-semibold text-yellow-600">
+                    보통
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+                  <div
+                    className="bg-yellow-500 h-2 rounded-full"
+                    style={{ width: '60%' }}
+                  ></div>
+                </div>
+                <p className="text-xs text-gray-500">
+                  현재 포트폴리오의 리스크 수준은 적절한 범위 내에 있습니다.
+                </p>
+              </div>
+
+              {/* 밸런스 */}
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-gray-600">밸런스</span>
+                  <span className="text-sm font-semibold text-blue-600">
+                    양호
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+                  <div
+                    className="bg-blue-500 h-2 rounded-full"
+                    style={{ width: '75%' }}
+                  ></div>
+                </div>
+                <p className="text-xs text-gray-500">
+                  주식과 현금의 배분이 목표 비율에 근접해 있습니다.
+                </p>
+              </div>
+
+              {/* 개선 제안 */}
+              <div className="bg-blue-50 rounded-lg p-4">
+                <h4 className="text-sm font-semibold text-blue-800 mb-3 flex items-center">
+                  💡 개선 제안
+                </h4>
+                <ul className="text-sm text-blue-700 space-y-2">
+                  <li className="flex items-start">
+                    <span className="text-blue-500 mr-2">•</span>
+                    장기 투자 비중을 조금 더 늘려보세요
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-blue-500 mr-2">•</span>
+                    현금 비율이 목표보다 높습니다
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-blue-500 mr-2">•</span>
+                    다음 리밸런싱 시기: 2주 후
+                  </li>
+                </ul>
+              </div>
+
+              {/* 닫기 버튼 */}
+              <div className="flex justify-end pt-4 border-t border-gray-100">
+                <button
+                  onClick={() => setShowHealthModal(false)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  확인
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 리밸런싱 상세 모달 */}
       <RebalancingDetailModal
