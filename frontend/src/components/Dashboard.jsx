@@ -628,7 +628,6 @@ const Dashboard = () => {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">자산 현황</h1>
           <p className="text-gray-500 mt-1">
             포트폴리오 자산의 전체 현황을 확인할 수 있습니다.
           </p>
@@ -659,7 +658,6 @@ const Dashboard = () => {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">자산 현황</h1>
           <p className="text-gray-500 mt-1">
             포트폴리오 자산의 전체 현황을 확인할 수 있습니다.
           </p>
@@ -686,7 +684,6 @@ const Dashboard = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">자산 현황</h1>
         <p className="text-gray-500 mt-1">
           포트폴리오 자산의 전체 현황을 확인할 수 있습니다.
         </p>

@@ -473,11 +473,7 @@ const PortfolioManagement = () => {
 
   return (
     <div>
-      {' '}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          포트폴리오 관리
-        </h1>
         <p className="text-gray-600">
           투자 종목을 체계적으로 관리하고 수익률을 확인하세요
         </p>
